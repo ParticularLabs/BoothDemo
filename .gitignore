@@ -1,0 +1,16 @@
+!/**/Platform/**/*
+**/logs/**/*
+**/Platform/**/db
+**/bin/
+**/obj/
+binaries/**/*
+**/.vs/
+MonitoringDemo.Sql/support/*.log
+MonitoringDemo.Sql/transport/
+*.pdb
+**/.learningtransport/**
+
+**/.diagnostics/*
+.logs
+.idea
+/otel/

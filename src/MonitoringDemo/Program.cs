@@ -1,0 +1,141 @@
+﻿using System.Diagnostics;
+using MonitoringDemo;
+using Terminal.Gui.App;
+using Terminal.Gui.Input;
+using Terminal.Gui.ViewBase;
+using Terminal.Gui.Views;
+
+CancellationTokenSource tokenSource = new();
+var cancellationToken = tokenSource.Token;
+
+Application.Init();
+
+using var launcher = new DemoLauncher();
+
+using var top = new Window();
+top.Title = "Particular Monitoring Demo";
+top.X = 0;
+top.Y = 1;
+top.Width = Dim.Fill();
+top.Height = Dim.Fill();
+
+var menuBarItems = new List<MenuBarItemv2>();
+
+ProcessWindow[] windows = [];
+var platformWindow = CreateWindow("Platform", "PlatformLauncher", "_Platform", true, 10010, cancellationToken);
+var clientWindow = CreateWindow("ClientUI", "ClientUI", "_ClientUI", false, 10000, cancellationToken);
+var billingWindow = CreateWindow("Billing", "Billing", "_Billing", false, 10020, cancellationToken);
+var shippingWindow = CreateWindow("Shipping", "Shipping", "S_hipping", false, 10030, cancellationToken);
+var salesWindow = CreateWindow("Sales", "Sales", "_Sales", false, 10040, cancellationToken);
+
+windows = [
+    platformWindow,
+    clientWindow,
+    billingWindow,
+    shippingWindow,
+    salesWindow
+];
+
+var quitMenuBarItem = new MenuBarItemv2("_Quit");
+quitMenuBarItem.Accepting += (_, eventArgs) =>
+{
+    tokenSource.Cancel();
+    eventArgs.Handled = true;
+    Application.RequestStop();
+};
+menuBarItems.Add(quitMenuBarItem);
+
+top.Add(new MenuBarv2
+{
+    Menus = [.. menuBarItems]
+});
+
+foreach (var window in windows)
+{
+    top.Add(window);
+}
+
+foreach (var window in windows.Skip(1))
+{
+    window.Visible = false;
+}
+
+Application.KeyDown += ApplicationKeyDown;
+
+void ApplicationKeyDown(object? sender, Key e)
+{
+    if (e.IsCtrl)
+    {
+        //Do not forward ctrl
+        return;
+    }
+
+    if (e.IsPartOfControllerSequence(out var seq))
+    {
+        e.Handled = true;
+        if (seq != null)
+        {
+            Debug.WriteLine(seq);
+            if (seq[1] == '1')
+            {
+                //First controller is always wired to Client
+                clientWindow.HandleSequence(seq.Substring(2));
+            }
+            else
+            {
+                var visibleWindow = windows.FirstOrDefault(x => x.Focused != null);
+                visibleWindow?.HandleSequence(seq.Substring(2));
+            }
+        }
+    }
+    else
+    {
+        foreach (var processWindow in windows)
+        {
+            processWindow.HandleKey(e);
+            if (e.Handled)
+            {
+                break;
+            }
+        }
+    }
+}
+
+Application.Run(top);
+
+Application.Shutdown();
+return;
+
+static void SwitchWindow(IReadOnlyCollection<ProcessWindow> windowsToHide, View windowToShow, View focusTarget)
+{
+    // Hide all other windows windows
+    foreach (var window in windowsToHide)
+    {
+        window.Visible = false;
+    }
+
+    windowToShow.Visible = true;
+    focusTarget.SetFocus();
+    windowToShow.SetNeedsDraw();
+}
+
+ProcessWindow CreateWindow(string title, string name, string menuItemText, bool singleInstance, int basePort, CancellationToken cancellationToken)
+{
+    var processWindow = new ProcessWindow(title, name, singleInstance, basePort, launcher, cancellationToken);
+    var windowsToHide = windows.Except([processWindow]).ToArray();
+
+    var menuBarItem = new MenuBarItemv2(menuItemText)
+    {
+        Id = name,
+        Title = menuItemText,
+    };
+    menuBarItem.Accepting += (_, eventArgs) =>
+    {
+        SwitchWindow(windowsToHide, processWindow, processWindow.LogView);
+        eventArgs.Handled = true;
+    };
+
+    menuBarItems.Add(menuBarItem);
+
+    return processWindow;
+}
