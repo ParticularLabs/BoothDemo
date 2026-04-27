@@ -3,9 +3,9 @@ using NServiceBus.Transport;
 
 namespace Shared;
 
-public class DispatchingProgressBehavior : Behavior<IBatchDispatchContext>
+public class DispatchingProgressBehavior(UserInterface userInterface) : Behavior<IBatchDispatchContext>
 {
-    private FailureSimulator failureSimulator = new();
+    FailureSimulator failureSimulator = new(userInterface);
 
     public override async Task Invoke(IBatchDispatchContext context, Func<Task> next)
     {
@@ -14,7 +14,7 @@ public class DispatchingProgressBehavior : Behavior<IBatchDispatchContext>
         var incomingMessage = context.Extensions.Get<IncomingMessage>();
         if (incomingMessage.Headers.ContainsKey("MonitoringDemo.ManualMode"))
         {
-            await failureSimulator.RunInteractive($"Dispatching outgoing messages {incomingMessage.MessageId}...", context.CancellationToken);
+            await failureSimulator.RunInteractive(incomingMessage.MessageId, ProcessingStage.Dispatching, context.CancellationToken);
         }
     }
 

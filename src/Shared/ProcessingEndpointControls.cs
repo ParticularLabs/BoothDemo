@@ -1,15 +1,15 @@
 ﻿namespace Shared;
 
-public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConfigProvider)
+public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConfigProvider, UserInterface ui)
 {
     private IEndpointInstance? runningEndpoint;
 
     private bool delayedRetries;
     private bool autoThrottle;
 
-    private readonly RetrievingMessageProgressBehavior retrievingMessageProgressBehavior = new RetrievingMessageProgressBehavior();
-    private readonly ProcessingMessageProgressBehavior processingMessageProgressBehavior = new ProcessingMessageProgressBehavior();
-    private readonly DispatchingProgressBehavior dispatchingMessageProgressBehavior = new DispatchingProgressBehavior();
+    private readonly AcknowledgingMessageProgressBehavior acknowledgingMessageProgressBehavior = new AcknowledgingMessageProgressBehavior(ui);
+    private readonly ProcessingMessageProgressBehavior processingMessageProgressBehavior = new ProcessingMessageProgressBehavior(ui);
+    private readonly DispatchingProgressBehavior dispatchingMessageProgressBehavior = new DispatchingProgressBehavior(ui);
     private readonly SlowProcessingSimulationBehavior slowProcessingSimulationBehavior = new SlowProcessingSimulationBehavior();
     private readonly DatabaseFailureSimulationBehavior databaseFailureSimulationBehavior = new DatabaseFailureSimulationBehavior();
     private readonly DatabaseDownSimulationBehavior databaseDownSimulationBehavior = new DatabaseDownSimulationBehavior();
@@ -19,7 +19,7 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
 
     void Register(EndpointConfiguration endpointConfiguration)
     {
-        endpointConfiguration.Pipeline.Register(retrievingMessageProgressBehavior, "Shows progress of retrieving messages");
+        endpointConfiguration.Pipeline.Register(acknowledgingMessageProgressBehavior, "Shows progress of retrieving messages");
         endpointConfiguration.Pipeline.Register(processingMessageProgressBehavior, "Shows progress of processing messages");
         endpointConfiguration.Pipeline.Register(dispatchingMessageProgressBehavior, "Shows progress of dispatching messages");
         endpointConfiguration.Pipeline.Register(slowProcessingSimulationBehavior, "Simulates slow processing");
@@ -96,35 +96,31 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
         }
     }
 
-    public void BindSlowProcessingDial(UserInterface userInterface, char upKey, char downKey)
+    public void BindProcessingTimeDial(char upKey, char downKey)
     {
-        userInterface.BindDial(
-            'B', upKey, downKey,
-            $"Press {upKey} to increase processing delay.{Environment.NewLine}Press {downKey} to increase it.",
+        ui.BindDial(upKey, downKey,
+            "processing time",
             () => slowProcessingSimulationBehavior.ReportState(),
             x => slowProcessingSimulationBehavior.SetProcessingDelay(x));
     }
 
-    public void BindDatabaseFailuresDial(UserInterface userInterface, char upKey, char downKey)
+    public void BindSimulatedFailuresDial(char upKey, char downKey)
     {
-        userInterface.BindDial(
-            'C', upKey, downKey, $"Press {upKey} to increase database failure rate.{Environment.NewLine}Press {downKey} to decrease it.",
+        ui.BindDial(upKey, downKey, "database failure rate",
             () => databaseFailureSimulationBehavior.ReportState(),
             x => databaseFailureSimulationBehavior.SetFailureLevel(x));
     }
 
-    public void BindDatabaseDownToggle(UserInterface userInterface, char toggleKey)
+    public void BindDatabaseDownSimulationToggle(char toggleKey)
     {
-        userInterface.BindToggle('D', toggleKey, $"Press {toggleKey} to toggle database down simulation.",
-            () => databaseDownSimulationBehavior.ReportState(),
+        ui.BindToggle(toggleKey, "database maintenance simulation.",
             () => databaseDownSimulationBehavior.Down(),
             () => databaseDownSimulationBehavior.Up());
     }
 
-    public void BindDelayedRetriesToggle(UserInterface userInterface, char toggleKey)
+    public void BindDelayedRetriesToggle(char toggleKey)
     {
-        userInterface.BindToggle('E', toggleKey, $"Press {toggleKey} to toggle delayed retries.",
-            () => delayedRetries ? "Delayed retries enabled" : "Delayed retries disabled",
+        ui.BindToggle(toggleKey, "delayed retries",
             () =>
             {
                 delayedRetries = true;
@@ -137,10 +133,9 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
             });
     }
 
-    public void BindAutoThrottleToggle(UserInterface userInterface, char toggleKey)
+    public void BindAutoThrottleToggle(char toggleKey)
     {
-        userInterface.BindToggle('F', toggleKey, $"Press {toggleKey} to toggle auto throttle.",
-            () => autoThrottle ? "Auto throttle enabled" : "Auto throttle disabled",
+        ui.BindToggle(toggleKey, "auto rate limiting",
             () =>
             {
                 autoThrottle = true;
@@ -153,24 +148,14 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
             });
     }
 
-    public void BindFailureReceivingButton(UserInterface userInterface, char key)
-    {
-        userInterface.BindButton('G', key, $"Press {key} to trigger failure while receiving a message",
-            null,
-            () => retrievingMessageProgressBehavior.Failure());
-    }
-
     public void BindFailureProcessingButton(UserInterface userInterface, char key)
     {
-        userInterface.BindButton('H', key, $"Press {key} to trigger failure while processing a message",
-            null,
-            () => processingMessageProgressBehavior.Failure());
+        userInterface.BindButton(key, "intermittent failure", () =>
+        {
+            processingMessageProgressBehavior.Failure();
+            dispatchingMessageProgressBehavior.Failure();
+            acknowledgingMessageProgressBehavior.Failure();
+        });
     }
 
-    public void BindFailureDispatchingButton(UserInterface userInterface, char key)
-    {
-        userInterface.BindButton('I', key, $"Press {key} to trigger failure while dispatching follow-up messages",
-            null,
-            () => dispatchingMessageProgressBehavior.Failure());
-    }
 }

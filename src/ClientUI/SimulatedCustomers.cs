@@ -3,106 +3,133 @@ using Shared;
 
 namespace ClientUI;
 
-class SimulatedCustomers(IEndpointInstance endpointInstance)
+class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
 {
-    public void BindSendingRateDial(UserInterface userInterface, char upKey, char downKey)
-    {
-        userInterface.BindDial('B', upKey, downKey,
-            $"Press {upKey} to increase sending rate.{Environment.NewLine}Press {downKey} to decrease it.",
-            () => $"Sending rate: {rate}", x => rate = x + 1); //Rate is from 1 to 10
-    }
+    const int batchSize = 5;
 
-    public void BindDuplicateLikelihoodDial(UserInterface userInterface, char upKey, char downKey)
+    public void BindSendingRateDial(char upKey, char downKey)
     {
-        userInterface.BindDial('C', upKey, downKey,
-            $"Press {upKey} to increase duplicate message rate.{Environment.NewLine}Press {downKey} to decrease it.",
-            () => $"Duplicate rate: {duplicateLikelihood * 10}%", x => duplicateLikelihood = x);
-    }
-
-    public void BindManualModeToggle(UserInterface userInterface, char toggleKey)
-    {
-        userInterface.BindToggle('D', toggleKey, $"Press {toggleKey} to toggle manual send mode",
-            () => manualMode ? "Manual sending mode" : "Automatic sending mode",
-            () => manualMode = true, () =>
+        ui.BindDial(upKey, downKey,
+            "Sending rate",
+            () => $"{rate}/s", x =>
             {
-                manualMode = false;
-                manualModeSemaphore.Release();
+                rate = x;
+                if (x > 0)
+                {
+                    manualModeSemaphore.Release();
+                }
             });
     }
 
-    public void BindNoiseToggle(UserInterface userInterface, char toggleKey)
+    public void BindDuplicateLikelihoodDial(char upKey, char downKey)
     {
-        userInterface.BindToggle('E', toggleKey, $"Press {toggleKey} to toggle random noise",
-            () => enableRandomNoise ? "Random noise" : "No random noise",
-            () => enableRandomNoise = true, () => enableRandomNoise = false);
+        ui.BindDial(upKey, downKey,
+            "Duplicate message rate",
+            () => $"{duplicateLikelihood * 10}%", x => duplicateLikelihood = x);
     }
 
-    public void BindBlackFridayToggle(UserInterface userInterface, char toggleKey)
+    public void BindNoiseLevelDial(char upKey, char downKey)
     {
-        userInterface.BindToggle('F', toggleKey, $"Press {toggleKey} to toggle Black Friday mode",
-            () => blackFriday ? "Black Friday!" : "Business as usual",
-            () => blackFriday = true, () => blackFriday = false);
+        ui.BindDial(upKey, downKey,
+            "Noise level",
+            () => $"{noiseFactor}", x => noiseFactor = x);
     }
 
-    public void BindManualSendButton(UserInterface userInterface, char key)
+    public void BindManualSendButton(char key)
     {
-        userInterface.BindButton('G', key, $"Press {key} to send a message", null, () => manualModeSemaphore.Release());
+        ui.BindButton(key, "Sending a message", () => manualModeSemaphore.Release());
     }
 
     private int EffectiveRate => Math.Max(blackFriday ? 32 : NoiseModifiedRate, 0);
-    private int NoiseModifiedRate => enableRandomNoise ? rate + noiseComponent : rate;
+    int NoiseModifiedRate => rate * batchSize + noiseComponent;
 
     public async Task Run(CancellationToken cancellationToken = default)
     {
         nextReset = DateTime.UtcNow.AddSeconds(1);
         currentIntervalCount = 0;
+        var noiseFatigue = 0;
+        var batchNumber = 0;
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            var now = DateTime.UtcNow;
-            if (now > nextReset)
+            if (rate == 0)
             {
-                currentIntervalCount = 0;
-
-                var noiseIncrease = Random.Shared.Next(Math.Abs(noiseComponent) + 1) == 0;
-                if (noiseComponent == 0)
-                {
-                    //Randomly go up or down
-                }
-                else if (noiseIncrease)
-                {
-                    noiseComponent += Math.Sign(noiseComponent);
-                }
-                else
-                {
-                    noiseComponent -= Math.Sign(noiseComponent);
-                }
-
-                nextReset = now.AddSeconds(1);
+                await ui.SendEvent(new SendingCompleted());
+                await manualModeSemaphore.WaitAsync(cancellationToken);
+                await PlaceSingleOrder(cancellationToken);
             }
-
-            if (manualMode)
+            else
             {
-                await manualModeSemaphore.WaitAsync();
-            }
-
-            await PlaceSingleOrder(cancellationToken);
-            currentIntervalCount++;
-
-            try
-            {
-                if (currentIntervalCount >= EffectiveRate)
+                var now = DateTime.UtcNow;
+                if (now > nextReset)
                 {
-                    var delay = nextReset - DateTime.UtcNow;
-                    if (delay > TimeSpan.Zero)
+                    await ui.SendEvent(new SendingCompleted());
+
+                    //HINT: Re-calculate rate
+                    currentIntervalCount = 0;
+
+                    //Likelihood of increasing the noise component decreases with the absolute value of the noise (base is 50%)
+                    var noiseIncrease =
+                        Random.Shared.Next(Math.Abs(noiseComponent) + (9 - noiseFactor) / 2 + noiseFatigue / 30) == 0;
+                    if (noiseIncrease)
                     {
-                        await Task.Delay(delay, cancellationToken);
+                        if (noiseComponent == 0)
+                        {
+                            noiseComponent += Random.Shared.Next(2) == 0 ? 1 : -1;
+                        }
+                        else
+                        {
+                            noiseComponent += Math.Sign(noiseComponent);
+                        }
+                    }
+                    else if (noiseComponent != 0)
+                    {
+                        noiseComponent -= Math.Sign(noiseComponent);
+                    }
+                    else
+                    {
+                        noiseFatigue = 0;
+                    }
+
+                    noiseFatigue += Math.Abs(noiseComponent);
+
+                    nextReset = now.AddSeconds(batchSize);
+
+                    batchNumber++;
+                    await ui.SendEvent(new SendingStarted(batchNumber, NoiseModifiedRate));
+                }
+
+
+                await PlaceSingleOrder(cancellationToken);
+                currentIntervalCount++;
+
+                await ui.SendEvent(new SendingProgress(currentIntervalCount * 100 / (double)EffectiveRate));
+
+                //HINT: Wait a bit
+                try
+                {
+                    var messagesLeft = EffectiveRate - currentIntervalCount;
+                    if (messagesLeft > 0)
+                    {
+                        var delay = (nextReset - DateTime.UtcNow) / messagesLeft;
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay, cancellationToken);
+                        }
+                    }
+                    else
+                    {
+                        var delay = nextReset - DateTime.UtcNow;
+                        if (delay > TimeSpan.Zero)
+                        {
+                            await Task.Delay(delay, cancellationToken);
+                        }
                     }
                 }
-            }
-            catch (TaskCanceledException)
-            {
-                break;
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
             }
         }
     }
@@ -118,20 +145,10 @@ class SimulatedCustomers(IEndpointInstance endpointInstance)
 
         await SendOneMessage(messageId, cancellationToken, placeOrderCommand);
 
-        if (manualMode)
-        {
-            Console.WriteLine($"Message {messageId} sent.");
-        }
-
         if (Random.Shared.Next(10) < duplicateLikelihood)
         {
             //Send a duplicate
             await SendOneMessage(messageId, cancellationToken, placeOrderCommand);
-
-            if (manualMode)
-            {
-                Console.WriteLine($"Duplicate message {messageId} sent.");
-            }
         }
     }
 
@@ -139,7 +156,7 @@ class SimulatedCustomers(IEndpointInstance endpointInstance)
     {
         var sendOptions = new SendOptions();
 
-        if (manualMode)
+        if (rate == 0) //Manual mode
         {
             sendOptions.SetHeader("MonitoringDemo.ManualMode", "True");
         }
@@ -150,11 +167,10 @@ class SimulatedCustomers(IEndpointInstance endpointInstance)
 
     DateTime nextReset;
     int currentIntervalCount;
-    int rate = 1;
+    int rate = 0;
     private int noiseComponent = 0;
-    private bool enableRandomNoise;
+    int noiseFactor = 0;
     private int duplicateLikelihood;
-    private bool manualMode;
     private bool blackFriday;
     private SemaphoreSlim manualModeSemaphore = new SemaphoreSlim(0);
 }

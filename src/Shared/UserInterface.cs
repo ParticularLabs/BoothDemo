@@ -1,85 +1,205 @@
+using NServiceBus;
+using Spectre.Console;
+using Spectre.Console.Rendering;
+using System.Collections.Concurrent;
+using System.Text;
+using System.Threading.Channels;
+
 namespace Shared;
 
 public class UserInterface
 {
     List<IControl> controls = [];
 
-    public void BindDial(char inputId, char upKey, char downKey, string helpMessage, Func<string> getState, Action<int> action)
+    Channel<UiEvent> uiEventChannel = Channel.CreateUnbounded<UiEvent>();
+
+    public ValueTask SendEvent(UiEvent uiEvent)
     {
-        controls.Add(new DialControl(inputId, upKey, downKey, helpMessage, getState, action));
+        return uiEventChannel.Writer.WriteAsync(uiEvent);
     }
 
-    public void BindToggle(char inputId, char toggleKey, string helpMessage, Func<string> getState, Action enableAction, Action disableAction)
+    public void BindDial(char upKey, char downKey, string name, Func<string> getState, Action<int> action)
     {
-        controls.Add(new ToggleControl(inputId, toggleKey, helpMessage, getState, enableAction, disableAction));
+        controls.Add(new DialControl(upKey, downKey, name, getState, action));
     }
 
-    public void BindButton(char inputId, char buttonKey, string helpMessage, string? pressedMessage, Action pressedAction)
+    public void BindToggle(char toggleKey, string name, Action enableAction, Action disableAction)
     {
-        controls.Add(new ButtonControl(inputId, buttonKey, helpMessage, pressedMessage, pressedAction));
+        controls.Add(new ToggleControl(toggleKey, name, enableAction, disableAction));
     }
 
+    public void BindButton(char buttonKey, string name, Action pressedAction)
+    {
+        controls.Add(new ButtonControl(buttonKey, name, pressedAction));
+    }
 
 #pragma warning disable PS0018
-    public void RunLoop(string title)
+    public Task RunLoop(string title)
 #pragma warning restore PS0018
     {
-        if (!Console.IsInputRedirected)
+        Console.Title = title;
+
+        CancellationTokenSource quitTokenSource = new CancellationTokenSource();
+
+        var keyboardLoop = Task.Run(async () =>
         {
-            Console.Title = title;
-        }
-
-        PrintControls();
-
-        while (true)
-        {
-            var input = ReadKeyOrLine();
-            if (string.IsNullOrWhiteSpace(input))
+            while (true)
             {
-                return;
-            }
-
-            if (input == "?")
-            {
-                foreach (var ctrl in controls)
+                int? param = null;
+                var key1 = Console.ReadKey(true);
+                if (key1.Key == ConsoleKey.Escape)
                 {
-                    ctrl.Help(Console.Out);
+                    await quitTokenSource.CancelAsync();
+                    return;
+                }
+
+                if (char.IsUpper(key1.KeyChar))
+                {
+                    //Upper case character, read another character as param
+                    var key2 = Console.ReadKey(true);
+                    if (int.TryParse(new string(key2.KeyChar, 1), out var p))
+                    {
+                        param = p;
+                    }
+                }
+
+                string? log = null;
+                var matchedControl = controls.FirstOrDefault(x => x.Match(key1.KeyChar, param, out log));
+                if (matchedControl != null && log != null)
+                {
+                    await uiEventChannel.Writer.WriteAsync(new ControlStateChanged(log), quitTokenSource.Token);
                 }
             }
+        });
 
-            var matchedControl = controls.FirstOrDefault(x => x.Match(input));
-            if (matchedControl != null)
+        return AnsiConsole.Progress()
+            .AutoClear(true)
+            .Columns(new ProgressColumn[]
+                {
+                    new TaskDescriptionColumn(),    // Task description
+                    new ProgressBarColumn(),        // Progress bar
+                    new PercentageColumn(),         // Percentage
+                    new ElapsedTimeColumn(),      // Remaining time
+                    new SpinnerColumn(),            // Spinner
+                })
+            .UseRenderHook((renderable, tasks) => RenderHook(tasks, renderable))
+            .StartAsync(async ctx =>
             {
-                matchedControl.ReportState(Console.Out);
-            }
-        }
+                var processingTasks = new Dictionary<(string MessageId, ProcessingStage Stage), ProgressTask>();
+                var sendingTasks = new ProgressTask[3];
+                int currentSendingTask = 2;
+
+                while (!quitTokenSource.IsCancellationRequested)
+                {
+                    while (uiEventChannel.Reader.TryRead(out var evt))
+                    {
+                        switch (evt)
+                        {
+                            case ProcessingStarted started:
+
+                                var processingTask = ctx.AddTask($"Processing {started.MessageId}", maxValue: 100, autoStart: false).IsIndeterminate();
+                                var dispatchingTask = ctx.AddTask($"Dispatching {started.MessageId}", maxValue: 100, autoStart: false).IsIndeterminate();
+                                var ackTask = ctx.AddTask($"Acknowledging {started.MessageId}", maxValue: 100, autoStart: false).IsIndeterminate();
+
+                                processingTasks[(started.MessageId, ProcessingStage.Processing)] = processingTask;
+                                processingTasks[(started.MessageId, ProcessingStage.Dispatching)] = dispatchingTask;
+                                processingTasks[(started.MessageId, ProcessingStage.Acknowledging)] = ackTask;
+                                break;
+
+                            case StageProgress sp:
+                                var task = processingTasks[(sp.MessageId, sp.Stage)];
+                                if (!task.IsStarted)
+                                {
+                                    task.StartTask();
+                                }
+
+                                task.Value = sp.Percent;
+                                task.IsIndeterminate = false;
+                                break;
+
+                            case StageCompleted sc:
+                                task = processingTasks[(sc.MessageId, sc.Stage)];
+                                task.Value = 100;
+                                task.StopTask();
+                                AnsiConsole.MarkupLine($"[grey]{sc.Stage} done for {sc.MessageId}[/]");
+                                break;
+
+                            case ProcessingCompleted tc:
+                                processingTask = processingTasks[(tc.MessageId, ProcessingStage.Processing)];
+                                dispatchingTask = processingTasks[(tc.MessageId, ProcessingStage.Dispatching)];
+                                ackTask = processingTasks[(tc.MessageId, ProcessingStage.Acknowledging)];
+
+                                ctx.RemoveTask(processingTask);
+                                ctx.RemoveTask(dispatchingTask);
+                                ctx.RemoveTask(ackTask);
+
+                                AnsiConsole.MarkupLine($"[green]Done processing message {tc.MessageId}[/]");
+                                break;
+
+                            case ProcessingFailed tf:
+
+                                if (processingTasks.Remove((tf.MessageId, ProcessingStage.Processing), out processingTask))
+                                {
+                                    ctx.RemoveTask(processingTask);
+                                }
+                                if (processingTasks.Remove((tf.MessageId, ProcessingStage.Dispatching), out dispatchingTask))
+                                {
+                                    ctx.RemoveTask(dispatchingTask);
+                                }
+                                if (processingTasks.Remove((tf.MessageId, ProcessingStage.Acknowledging), out ackTask))
+                                {
+                                    ctx.RemoveTask(ackTask);
+                                }
+
+                                AnsiConsole.MarkupLine($"[red]Error processing message {tf.MessageId}[/]");
+                                break;
+
+                            case ControlStateChanged csc:
+                                AnsiConsole.MarkupLine($"[grey]{csc.Text}[/]");
+                                break;
+
+                            case SendingStarted ss:
+                                currentSendingTask = (currentSendingTask + 1) % sendingTasks.Length;
+                                if (sendingTasks[currentSendingTask] != null)
+                                {
+                                    ctx.RemoveTask(sendingTasks[currentSendingTask]);
+                                }
+                                var sendingTask = ctx.AddTask($"Sending batch #{ss.BatchNumber} of {ss.BatchSize} msg", maxValue: 100, autoStart: true);
+                                sendingTasks[currentSendingTask] = sendingTask;
+                                
+                                break;
+
+                            case SendingProgress sp:
+                                if (sendingTasks[currentSendingTask] != null)
+                                {
+                                    sendingTasks[currentSendingTask].Value = sp.Percent;
+                                }
+                                break;
+
+                            case SendingCompleted sc:
+                                if (sendingTasks[currentSendingTask] != null)
+                                {
+                                    sendingTasks[currentSendingTask].Value = 100;
+                                    sendingTasks[currentSendingTask].StopTask();
+                                }
+                                break;
+                        }
+                    }
+                    await Task.Delay(50, quitTokenSource.Token);
+                }
+            });
     }
 
-    private static string? ReadKeyOrLine()
+    IRenderable RenderHook(IReadOnlyList<ProgressTask> tasks, IRenderable renderable)
     {
-        if (Console.IsInputRedirected)
-        {
-            return Console.ReadLine();
-        }
-
-        var key = Console.ReadKey(true);
-        return new string(key.KeyChar, 1);
-    }
-
-    private void PrintControls()
-    {
+        var content = new List<Renderable>();
         foreach (var ctrl in controls)
         {
-            ctrl.Help(Console.Out);
+            content.Add(ctrl.ReportState());
         }
-        Console.WriteLine("Page F2/F3 to scale out/in instances.");
-        if (!Console.IsInputRedirected)
-        {
-            Console.WriteLine("Press ? for help");
-        }
-        else
-        {
-            Console.WriteLine("Press F1 for help");
-        }
+
+        var header = new Panel(new Rows(content)).Expand().RoundedBorder();
+        
+        return new Rows(header, renderable);
     }
 }

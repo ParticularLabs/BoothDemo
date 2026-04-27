@@ -1,7 +1,12 @@
+using Messages;
+using Microsoft.Extensions.Logging;
+using NServiceBus.Logging;
+using Shared;
 using System.Reflection;
 using System.Text.Json;
-using Messages;
-using Shared;
+using NServiceBus.Extensions.Logging;
+
+Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var instancePostfix = args.FirstOrDefault();
 var title = string.IsNullOrEmpty(instancePostfix) ? "Processing (Sales)" : $"Sales - {instancePostfix}";
@@ -10,19 +15,17 @@ var prometheusPortString = args.Skip(1).FirstOrDefault();
 
 var instanceId = DeterministicGuid.Create("Sales", instanceName);
 
-var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString));
-
 var ui = new UserInterface();
-endpointControls.BindSlowProcessingDial(ui, '2', 'w');
-endpointControls.BindDatabaseFailuresDial(ui, '3', 'e');
+var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString), ui);
 
-endpointControls.BindDatabaseDownToggle(ui, 'a');
-endpointControls.BindDelayedRetriesToggle(ui, 's');
-endpointControls.BindAutoThrottleToggle(ui, 'd');
+endpointControls.BindProcessingTimeDial('q', 'a');
+endpointControls.BindSimulatedFailuresDial('w', 's');
 
-endpointControls.BindFailureReceivingButton(ui, 'z');
+endpointControls.BindDatabaseDownSimulationToggle('i');
+endpointControls.BindDelayedRetriesToggle('o');
+endpointControls.BindAutoThrottleToggle('p');
+
 endpointControls.BindFailureProcessingButton(ui, 'x');
-endpointControls.BindFailureDispatchingButton(ui, 'c');
 
 if (prometheusPortString != null)
 {
@@ -31,14 +34,14 @@ if (prometheusPortString != null)
 
 endpointControls.Start();
 
-ui.RunLoop(title);
+await ui.RunLoop(title);
 
 await endpointControls.StopEndpoint();
 
 EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName, string? prometheusPortString1)
 {
     var endpointConfiguration1 = new EndpointConfiguration("Sales");
-    endpointConfiguration1.LimitMessageProcessingConcurrencyTo(4);
+    endpointConfiguration1.LimitMessageProcessingConcurrencyTo(1);
 
     var serializer = endpointConfiguration1.UseSerialization<SystemJsonSerializer>();
     serializer.Options(new JsonSerializerOptions
@@ -74,6 +77,17 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
     endpointConfiguration1.EnableOutbox();
 
     endpointConfiguration1.EnableOpenTelemetry();
+
+    var loggerFactory = LoggerFactory.Create(builder =>
+    {
+        builder.ClearProviders(); // removes Console, Debug, etc.
+
+        // Optionally add something else:
+        // builder.AddDebug();
+        // builder.AddProvider(new MyCustomProvider());
+    });
+
+    LogManager.UseFactory(new ExtensionsLoggerFactory(loggerFactory));
 
     return endpointConfiguration1;
 }

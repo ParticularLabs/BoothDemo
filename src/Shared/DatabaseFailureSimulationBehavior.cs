@@ -22,6 +22,6 @@ public class DatabaseFailureSimulationBehavior : Behavior<IInvokeHandlerContext>
 
     public string ReportState()
     {
-        return $"Likelihood of random database failure: {failureLevel * 10}%";
+        return $"{failureLevel * 10}%";
     }
 }

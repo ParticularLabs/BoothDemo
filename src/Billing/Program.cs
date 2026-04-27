@@ -10,19 +10,17 @@ var instanceName = string.IsNullOrEmpty(instancePostfix) ? "billing" : $"billing
 var instanceId = DeterministicGuid.Create("Billing", instanceName);
 var prometheusPortString = args.Skip(1).FirstOrDefault();
 
-var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString));
-
 var ui = new UserInterface();
-endpointControls.BindSlowProcessingDial(ui, '5', 't');
-endpointControls.BindDatabaseFailuresDial(ui, '6', 'y');
+var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString), ui);
 
-endpointControls.BindDatabaseDownToggle(ui, 'f');
-endpointControls.BindDelayedRetriesToggle(ui, 'g');
-endpointControls.BindAutoThrottleToggle(ui, 'h');
+//endpointControls.BindProcessingTimeDial(ui, '5', 't');
+//endpointControls.BindSimulatedFailuresDial(ui, '6', 'y');
 
-endpointControls.BindFailureReceivingButton(ui, 'v');
-endpointControls.BindFailureProcessingButton(ui, 'b');
-endpointControls.BindFailureDispatchingButton(ui, 'n');
+//endpointControls.BindDatabaseDownSimulationToggle(ui, 'f');
+//endpointControls.BindDelayedRetriesToggle(ui, 'g');
+//endpointControls.BindAutoThrottleToggle(ui, 'h');
+
+//endpointControls.BindFailureProcessingButton(ui, 'b');
 
 if (prometheusPortString != null)
 {
@@ -31,7 +29,7 @@ if (prometheusPortString != null)
 
 endpointControls.Start();
 
-ui.RunLoop(title);
+await ui.RunLoop(title);
 
 await endpointControls.StopEndpoint();
 

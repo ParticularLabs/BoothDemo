@@ -1,49 +1,42 @@
+using Spectre.Console;
+using Spectre.Console.Rendering;
+
 namespace Shared;
 
 class ButtonControl : IControl
 {
-    private readonly char inputId;
     private readonly char buttonKey;
-    private readonly string helpMessage;
-    private readonly string? pressedMessage;
+    private readonly string name;
     private readonly Action pressedAction;
 
-    public ButtonControl(char inputId, char buttonKey, string helpMessage, string? pressedMessage, Action pressedAction)
+    public ButtonControl(char buttonKey, string name, Action pressedAction)
     {
-        this.inputId = inputId;
         this.buttonKey = buttonKey;
-        this.helpMessage = helpMessage;
-        this.pressedMessage = pressedMessage;
+        this.name = name;
         this.pressedAction = pressedAction;
     }
 
-    public bool Match(string input)
+    public bool Match(char input, int? param, out string? log)
     {
-        if (input[0] == buttonKey)
+        if (input == buttonKey)
         {
             pressedAction();
+            log = $"{name} triggered.";
             return true;
         }
 
-        if (input[0] == '$' && input.Length >= 2 && input[1] == inputId)
-        {
-            pressedAction();
-            return true;
-        }
-
+        log = null;
         return false;
     }
 
-    public void Help(TextWriter textWriter)
+    public Renderable ReportState()
     {
-        textWriter.WriteLine(helpMessage);
-    }
-
-    public void ReportState(TextWriter textWriter)
-    {
-        if (pressedMessage != null)
+        return new Columns(
+            new Markup($"{name} {Emoji.Known.RightArrow} [bold]{buttonKey}[/]"),
+            new Markup(""))
         {
-            textWriter.WriteLine(pressedMessage);
-        }
+            Padding = new Padding(1),
+            Expand = false
+        };
     }
 }

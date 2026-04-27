@@ -4,6 +4,8 @@ using ClientUI;
 using Messages;
 using Shared;
 
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+
 var instancePostfix = args.FirstOrDefault();
 
 var title = string.IsNullOrEmpty(instancePostfix) ? "ClientUI" : $"ClientUI - {instancePostfix}";
@@ -51,21 +53,19 @@ if (prometheusPortString != null)
 }
 
 var endpointInstance = await Endpoint.Start(endpointConfiguration);
-
-var simulatedCustomers = new SimulatedCustomers(endpointInstance);
+var ui = new UserInterface();
+var simulatedCustomers = new SimulatedCustomers(endpointInstance, ui);
 var cancellation = new CancellationTokenSource();
 
-var ui = new UserInterface();
-simulatedCustomers.BindSendingRateDial(ui, '-', '[');
-simulatedCustomers.BindDuplicateLikelihoodDial(ui, '=', ']');
-simulatedCustomers.BindManualModeToggle(ui, ';');
-simulatedCustomers.BindManualSendButton(ui, '/');
-simulatedCustomers.BindNoiseToggle(ui, '`');
-simulatedCustomers.BindBlackFridayToggle(ui, '\'');
+simulatedCustomers.BindSendingRateDial('q', 'a');
+simulatedCustomers.BindDuplicateLikelihoodDial( 'w', 's');
+simulatedCustomers.BindNoiseLevelDial('e', 'd');
+
+simulatedCustomers.BindManualSendButton('b');
 
 var simulatedWork = simulatedCustomers.Run(cancellation.Token);
 
-ui.RunLoop(title);
+await ui.RunLoop(title);
 
 cancellation.Cancel();
 

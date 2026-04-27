@@ -1,10 +1,10 @@
+using Spectre.Console.Rendering;
+
 namespace Shared;
 
 public interface IControl
 {
-    bool Match(string input);
+    bool Match(char input, int? param, out string? log);
 
-    void Help(TextWriter textWriter);
-
-    void ReportState(TextWriter textWriter);
+    Renderable ReportState();
 }

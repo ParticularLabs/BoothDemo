@@ -10,26 +10,24 @@ var instanceName = string.IsNullOrEmpty(instancePostfix) ? "shipping" : $"shippi
 var instanceId = DeterministicGuid.Create("Shipping", instanceName);
 var prometheusPortString = args.Skip(1).FirstOrDefault();
 
-var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString));
-
 var ui = new UserInterface();
-endpointControls.BindSlowProcessingDial(ui, '8', 'i');
-endpointControls.BindDatabaseFailuresDial(ui, '9', 'o');
+var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString), ui);
 
-endpointControls.BindDatabaseDownToggle(ui, 'j');
-endpointControls.BindDelayedRetriesToggle(ui, 'k');
-endpointControls.BindAutoThrottleToggle(ui, 'l');
+//endpointControls.BindProcessingTimeDial(ui, '8', 'i');
+//endpointControls.BindSimulatedFailuresDial(ui, '9', 'o');
 
-endpointControls.BindFailureReceivingButton(ui, 'm');
-endpointControls.BindFailureProcessingButton(ui, ',');
-endpointControls.BindFailureDispatchingButton(ui, '.');
+//endpointControls.BindDatabaseDownSimulationToggle(ui, 'j');
+//endpointControls.BindDelayedRetriesToggle(ui, 'k');
+//endpointControls.BindAutoThrottleToggle(ui, 'l');
+
+//endpointControls.BindFailureProcessingButton(ui, ',');
 
 if (prometheusPortString != null)
 {
     OpenTelemetryUtils.ConfigureOpenTelemetry("Shipping", instanceId.ToString(), int.Parse(prometheusPortString));
 }
 endpointControls.Start();
-ui.RunLoop(title);
+await ui.RunLoop(title);
 
 await endpointControls.StopEndpoint();
 
