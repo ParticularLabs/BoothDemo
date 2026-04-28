@@ -1,4 +1,5 @@
 ﻿using Messages;
+using Shared;
 
 namespace Shipping;
 

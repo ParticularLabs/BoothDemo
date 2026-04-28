@@ -183,6 +183,15 @@ public class UserInterface
                                     sendingTasks[currentSendingTask].StopTask();
                                 }
                                 break;
+
+                            case OrderSagaStarted oss:
+                                AnsiConsole.MarkupLine($"[yellow]Saga started for order {oss.OrderId}[/]");
+                                break;
+
+                            case OrderSagaCompleted osc:
+                                AnsiConsole.MarkupLine($"[yellow]Saga completed for order {osc.OrderId}[/]");
+                                break;
+
                         }
                     }
                     await Task.Delay(50, quitTokenSource.Token);

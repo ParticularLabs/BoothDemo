@@ -1,8 +1,12 @@
-﻿using System.Reflection;
-using System.Text.Json;
-using ClientUI;
+﻿using ClientUI;
 using Messages;
+using Microsoft.Extensions.Logging;
+using NServiceBus.Configuration.AdvancedExtensibility;
+using NServiceBus.Logging;
+using NServiceBus.Transport;
 using Shared;
+using System.Text.Json;
+using NServiceBus.Extensions.Logging;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -24,11 +28,17 @@ serializer.Options(new JsonSerializerOptions
         }
 });
 
-var transport = new LearningTransport
-{
-    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport")
-};
+//var transport = new LearningTransport
+//{
+//    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport")
+//};
+var connectionString = Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
+var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
 var routing = endpointConfiguration.UseTransport(transport);
+
+var queueBindings = endpointConfiguration.GetSettings().Get<QueueBindings>();
+queueBindings.BindSending("Particular.Monitoring");
+queueBindings.BindSending("Particular.ServiceControl");
 
 endpointConfiguration.AuditProcessedMessagesTo("audit");
 endpointConfiguration.SendHeartbeatTo("Particular.ServiceControl");
@@ -38,6 +48,7 @@ endpointConfiguration.UniquelyIdentifyRunningInstance()
     .UsingCustomDisplayName(instanceName);
 
 endpointConfiguration.EnableOpenTelemetry();
+endpointConfiguration.EnableInstallers();
 
 var metrics = endpointConfiguration.EnableMetrics();
 metrics.SendMetricDataToServiceControl(
@@ -51,6 +62,17 @@ if (prometheusPortString != null)
 {
     OpenTelemetryUtils.ConfigureOpenTelemetry("ClientUI", instanceId.ToString(), int.Parse(prometheusPortString));
 }
+
+var loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder.ClearProviders(); // removes Console, Debug, etc.
+
+    // Optionally add something else:
+    // builder.AddDebug();
+    // builder.AddProvider(new MyCustomProvider());
+});
+
+LogManager.UseFactory(new ExtensionsLoggerFactory(loggerFactory));
 
 var endpointInstance = await Endpoint.Start(endpointConfiguration);
 var ui = new UserInterface();

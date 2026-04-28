@@ -2,7 +2,7 @@
 
 namespace Messages;
 
-public class OrderBilled : IEvent
+public class OrderShipped : IEvent
 {
     public required string OrderId { get; set; }
 }

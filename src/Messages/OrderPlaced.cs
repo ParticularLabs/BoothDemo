@@ -4,5 +4,5 @@ namespace Messages;
 
 public class OrderPlaced : IEvent
 {
-    public string? OrderId { get; set; }
+    public required string OrderId { get; set; }
 }

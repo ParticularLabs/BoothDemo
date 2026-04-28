@@ -1,10 +1,13 @@
 using Messages;
 using Microsoft.Extensions.Logging;
+using NServiceBus;
+using NServiceBus.Extensions.Logging;
 using NServiceBus.Logging;
 using Shared;
 using System.Reflection;
 using System.Text.Json;
-using NServiceBus.Extensions.Logging;
+using NServiceBus.Configuration.AdvancedExtensibility;
+using NServiceBus.Transport;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -40,10 +43,10 @@ await endpointControls.StopEndpoint();
 
 EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName, string? prometheusPortString1)
 {
-    var endpointConfiguration1 = new EndpointConfiguration("Sales");
-    endpointConfiguration1.LimitMessageProcessingConcurrencyTo(1);
+    var endpointConfiguration = new EndpointConfiguration("Sales");
+    endpointConfiguration.LimitMessageProcessingConcurrencyTo(1);
 
-    var serializer = endpointConfiguration1.UseSerialization<SystemJsonSerializer>();
+    var serializer = endpointConfiguration.UseSerialization<SystemJsonSerializer>();
     serializer.Options(new JsonSerializerOptions
     {
         TypeInfoResolverChain =
@@ -52,31 +55,37 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
         }
     });
 
-    var transport = new LearningTransport
-    {
-        StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport"),
-        TransportTransactionMode = TransportTransactionMode.ReceiveOnly
-    };
-    endpointConfiguration1.UseTransport(transport);
+    //var transport = new LearningTransport
+    //{
+    //    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport"),
+    //    TransportTransactionMode = TransportTransactionMode.ReceiveOnly
+    //};
+    var connectionString = Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
+    var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
+    endpointConfiguration.UseTransport(transport);
+    var queueBindings = endpointConfiguration.GetSettings().Get<QueueBindings>();
+    queueBindings.BindSending("Particular.Monitoring");
+    queueBindings.BindSending("Particular.ServiceControl");
 
-    endpointConfiguration1.AuditProcessedMessagesTo("audit");
-    endpointConfiguration1.SendHeartbeatTo("Particular.ServiceControl");
+    endpointConfiguration.AuditProcessedMessagesTo("audit");
+    endpointConfiguration.SendHeartbeatTo("Particular.ServiceControl");
 
-    endpointConfiguration1.UniquelyIdentifyRunningInstance()
+    endpointConfiguration.UniquelyIdentifyRunningInstance()
         .UsingCustomIdentifier(guid)
         .UsingCustomDisplayName(displayName);
 
-    var metrics = endpointConfiguration1.EnableMetrics();
+    var metrics = endpointConfiguration.EnableMetrics();
 
     metrics.SendMetricDataToServiceControl(
         "Particular.Monitoring",
         TimeSpan.FromMilliseconds(500)
     );
 
-    endpointConfiguration1.UsePersistence<NonDurablePersistence>();
-    endpointConfiguration1.EnableOutbox();
+    endpointConfiguration.UsePersistence<NonDurablePersistence>();
+    endpointConfiguration.EnableOutbox();
 
-    endpointConfiguration1.EnableOpenTelemetry();
+    endpointConfiguration.EnableOpenTelemetry();
+    endpointConfiguration.EnableInstallers();
 
     var loggerFactory = LoggerFactory.Create(builder =>
     {
@@ -89,5 +98,5 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
 
     LogManager.UseFactory(new ExtensionsLoggerFactory(loggerFactory));
 
-    return endpointConfiguration1;
+    return endpointConfiguration;
 }

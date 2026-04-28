@@ -11,3 +11,5 @@ public record ProcessingFailed(string MessageId, string Error) : UiEvent;
 public record SendingStarted(int BatchNumber, int BatchSize) : UiEvent;
 public record SendingProgress(double Percent) : UiEvent;
 public record SendingCompleted() : UiEvent;
+public record OrderSagaStarted(string OrderId) : UiEvent;
+public record OrderSagaCompleted(string OrderId) : UiEvent;

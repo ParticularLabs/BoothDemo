@@ -9,6 +9,18 @@
       {
         "Path": "Sales\\Sales.csproj",
         "Action": "Start"
+      },
+      {
+        "Path": "Billing\\Billing.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "RabbitToAzureBridge\\RabbitToAzureBridge.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "Shipping\\Shipping.csproj",
+        "Action": "Start"
       }
     ]
   }

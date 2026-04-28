@@ -1,4 +1,6 @@
-﻿namespace Shared;
+﻿using Microsoft.Extensions.DependencyInjection;
+
+namespace Shared;
 
 public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConfigProvider, UserInterface ui)
 {
@@ -19,6 +21,10 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
 
     void Register(EndpointConfiguration endpointConfiguration)
     {
+        endpointConfiguration.RegisterComponents(sc =>
+        {
+            sc.AddSingleton(ui);
+        });
         endpointConfiguration.Pipeline.Register(acknowledgingMessageProgressBehavior, "Shows progress of retrieving messages");
         endpointConfiguration.Pipeline.Register(processingMessageProgressBehavior, "Shows progress of processing messages");
         endpointConfiguration.Pipeline.Register(dispatchingMessageProgressBehavior, "Shows progress of dispatching messages");
