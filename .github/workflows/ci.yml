@@ -23,17 +23,3 @@ jobs:
           global-json-file: global.json
       - name: Build
         run: dotnet build src --configuration Release
-      - name: Remove executables
-        run: |
-          Remove-Item binaries/MonitoringDemo/MonitoringDemo
-          Remove-Item binaries/Billing/Billing
-          Remove-Item binaries/ClientUI/ClientUI
-          Remove-Item binaries/PlatformLauncher/PlatformLauncher
-          Remove-Item binaries/Sales/Sales
-          Remove-Item binaries/Shipping/Shipping
-      - name: Publish artifacts
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: binaries
-          path: binaries/*
-          retention-days: 7
