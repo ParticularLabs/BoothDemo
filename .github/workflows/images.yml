@@ -45,7 +45,7 @@ jobs:
         run: >
           dotnet publish src/Billing/Billing.csproj
           --configuration Release
-          --runtime x64
+          --runtime linux-x64
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/billing
@@ -56,7 +56,7 @@ jobs:
         run: >
           dotnet publish src/Shipping/Shipping.csproj
           --configuration Release
-          --runtime x64
+          --runtime linux-x64
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/shipping
