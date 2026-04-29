@@ -40,7 +40,7 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
         ui.BindButton(key, "Sending a message", () => manualModeSemaphore.Release());
     }
 
-    private int EffectiveRate => Math.Max(blackFriday ? 32 : NoiseModifiedRate, 0);
+    int EffectiveRate => Math.Max(NoiseModifiedRate, 0);
     int NoiseModifiedRate => rate * batchSize + noiseComponent;
 
     public async Task Run(CancellationToken cancellationToken = default)
@@ -171,6 +171,5 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
     private int noiseComponent = 0;
     int noiseFactor = 0;
     private int duplicateLikelihood;
-    private bool blackFriday;
     private SemaphoreSlim manualModeSemaphore = new SemaphoreSlim(0);
 }

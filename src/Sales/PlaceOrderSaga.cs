@@ -38,7 +38,9 @@ public class PlaceOrderSaga(UserInterface ui) : Saga<PlaceOrderSagaData>, IAmSta
         return TryComplete();
     }
 
+#pragma warning disable PS0018
     async Task TryComplete()
+#pragma warning restore PS0018
     {
         if (Data.IsBilled && Data.IsShipped)
         {
@@ -50,7 +52,9 @@ public class PlaceOrderSaga(UserInterface ui) : Saga<PlaceOrderSagaData>, IAmSta
 
 public class PlaceOrderSagaData : ContainSagaData
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public string OrderId { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public bool IsShipped { get; set; }
     public bool IsBilled { get; set; }
 }

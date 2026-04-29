@@ -13,7 +13,9 @@ public class UserInterface
 
     Channel<UiEvent> uiEventChannel = Channel.CreateUnbounded<UiEvent>();
 
+#pragma warning disable PS0018
     public ValueTask SendEvent(UiEvent uiEvent)
+#pragma warning restore PS0018
     {
         return uiEventChannel.Writer.WriteAsync(uiEvent);
     }
