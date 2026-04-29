@@ -1,65 +1,50 @@
 name: Release
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
-env:
-  DOTNET_NOLOGO: true
-defaults:
-  run:
-    shell: pwsh
+
 jobs:
-  release:
+  publish:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        project:
+          - src/Billing/Billing.csproj
+          - src/Shipping/Shipping.csproj
+          - src/Sales/Sales.csproj
+          - src/ClientUI/ClientUI.csproj
+          - src/RabbitToAzureBridge/RabbitToAzureBridge.csproj
+        runtime:
+          - linux-x64
+          - linux-arm64   # Raspberry Pi 4 (64-bit)
+          # - linux-arm   # uncomment if you need 32-bit Pi
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5.0.0
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v5.0.0
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
         with:
-          global-json-file: global.json
-      - name: Build
-        run: dotnet build src --configuration Release
-      - name: Remove executables
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Publish
         run: |
-          Remove-Item binaries/MonitoringDemo/MonitoringDemo
-          Remove-Item binaries/Billing/Billing
-          Remove-Item binaries/ClientUI/ClientUI
-          Remove-Item binaries/PlatformLauncher/PlatformLauncher
-          Remove-Item binaries/Sales/Sales
-          Remove-Item binaries/Shipping/Shipping
-      - name: Setup AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4.1.0
+          name=$(basename "${{ matrix.project }}" .csproj)
+
+          dotnet publish "${{ matrix.project }}" \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:EnableCompressionInSingleFile=true \
+            -o "artifacts/${{ matrix.runtime }}/$name"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESSKEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRETKEY }}
-          aws-region: us-east-1
-      - name: Deploy to S3
-        shell: bash
-        run: |
-          echo "Creating Particular.MonitoringDemo.zip archive"
-          (cd binaries && zip -r "$OLDPWD/Particular.MonitoringDemo.zip" .)
-
-          echo "Uploading zip file to AWS"
-          aws s3 cp ./Particular.MonitoringDemo.zip s3://particular.downloads/MonitoringDemo/Particular.MonitoringDemo.zip --content-type application/zip --acl public-read
-
-          echo "Complete"
-      - name: Upload dependency file to AWS
-        run: |
-          $dotnetPackages = dotnet list src/Platform package --include-transitive --format json | ConvertFrom-Json
-          $firstProject = $dotnetPackages.projects[0]
-          $firstTfm = $firstProject.frameworks[0]
-          $allPackages = $firstTfm.topLevelPackages + $firstTfm.transitivePackages
-
-          $versions = @{
-            PlatformSample = ($allPackages | Where-Object -Property id -EQ 'Particular.PlatformSample').resolvedVersion
-            ServiceControl = ($allPackages | Where-Object -Property id -EQ 'Particular.PlatformSample.ServiceControl').resolvedVersion
-            ServicePulse = ($allPackages | Where-Object -Property id -EQ 'Particular.PlatformSample.ServicePulse').resolvedVersion
-          }
-
-          $json = $versions | ConvertTo-Json
-          echo "Writing dependencies file ./dependencies.json containing:"
-          echo $json
-          echo $json > dependencies.json
-
-          echo "Uploading to https://s3.amazonaws.com/particular.downloads/MonitoringDemo/Particular.MonitoringDemo.dependencies.json"
-          aws s3 cp ./dependencies.json s3://particular.downloads/MonitoringDemo/Particular.MonitoringDemo.dependencies.json --content-type application/json --acl public-read
-          echo "Complete"
+          name: ${{ matrix.runtime }}-${{ matrix.project }}
+          path: artifacts/${{ matrix.runtime }}
