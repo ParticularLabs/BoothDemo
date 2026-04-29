@@ -14,7 +14,7 @@ defaults:
 
 jobs:
   build:
-    name: Build and publish ARM64 containers
+    name: Build and publish containers
     runs-on: ubuntu-latest
 
     permissions:
@@ -45,7 +45,7 @@ jobs:
         run: >
           dotnet publish src/Billing/Billing.csproj
           --configuration Release
-          --runtime linux-arm64
+          --runtime x64
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/billing
@@ -56,7 +56,7 @@ jobs:
         run: >
           dotnet publish src/Shipping/Shipping.csproj
           --configuration Release
-          --runtime linux-arm64
+          --runtime x64
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/shipping
