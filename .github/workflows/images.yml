@@ -1,0 +1,81 @@
+name: Images
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  REGISTRY: ghcr.io
+  IMAGE_NAME_PREFIX: ${{ github.repository }}
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build:
+    name: Build and publish ARM64 containers
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5.0.0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v5.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore src
+
+      - name: Build
+        run: dotnet build src --configuration Release --no-restore
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login $env:REGISTRY -u ${{ github.actor }} --password-stdin
+
+      - name: Publish Billing image
+        if: github.event_name != 'pull_request'
+        run: >
+          dotnet publish src/Billing/Billing.csproj
+          --configuration Release
+          --runtime linux-arm64
+          --no-restore
+          /t:PublishContainer
+          -p:ContainerRegistry=$env:REGISTRY
+          -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/billing
+          -p:ContainerImageTags=latest
+
+      - name: Publish Shipping image
+        if: github.event_name != 'pull_request'
+        run: >
+          dotnet publish src/Shipping/Shipping.csproj
+          --configuration Release
+          --runtime linux-arm64
+          --no-restore
+          /t:PublishContainer
+          -p:ContainerRegistry=$env:REGISTRY
+          -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/shipping
+          -p:ContainerImageTags=latest
+
+      - name: Publish RabbitToAzureBridge image
+        if: github.event_name != 'pull_request'
+        run: >
+          dotnet publish src/RabbitToAzureBridge/RabbitToAzureBridge.csproj
+          --configuration Release
+          --runtime linux-arm64
+          --no-restore
+          /t:PublishContainer
+          -p:ContainerRegistry=$env:REGISTRY
+          -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/rabbittoazurebridge
+          -p:ContainerImageTags=latest
