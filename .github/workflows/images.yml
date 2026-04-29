@@ -31,10 +31,10 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore src --runtime linux-arm64
+        run: dotnet restore src
 
       - name: Build
-        run: dotnet build src --configuration Release --runtime linux-arm64 --no-restore
+        run: dotnet build src --configuration Release --no-restore
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
