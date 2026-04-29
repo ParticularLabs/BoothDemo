@@ -46,7 +46,6 @@ jobs:
           dotnet publish src/Billing/Billing.csproj
           --configuration Release
           --runtime linux-arm64
-          --no-restore
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/billing
@@ -58,7 +57,6 @@ jobs:
           dotnet publish src/Shipping/Shipping.csproj
           --configuration Release
           --runtime linux-arm64
-          --no-restore
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/shipping
@@ -70,7 +68,6 @@ jobs:
           dotnet publish src/RabbitToAzureBridge/RabbitToAzureBridge.csproj
           --configuration Release
           --runtime linux-arm64
-          --no-restore
           /t:PublishContainer
           -p:ContainerRegistry=$env:REGISTRY
           -p:ContainerImageName=$env:IMAGE_NAME_PREFIX/rabbittoazurebridge
