@@ -24,6 +24,7 @@
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" Version="5.*" />
     <PackageReference Include="NServiceBus.Extensions.Logging" Version="3.*" />
     <PackageReference Include="NServiceBus.Extensions.Hosting" Version="3.*" />
+    <PackageReference Include="NServiceBus.Metrics.ServiceControl" Version="5.*" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,5 @@
 ﻿using Messages;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 Console.Title = "Bridge";
@@ -41,6 +42,18 @@ bridgeConfiguration.AddTransport(asb);
 
 var builder = Host.CreateApplicationBuilder();
 builder.UseNServiceBusBridge(bridgeConfiguration);
+
+var queueLengthForwarderConfig = new EndpointConfiguration("QueueLengthForwarder");
+queueLengthForwarderConfig.UseTransport(new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum),
+    rabbitMqConnectionString));
+
+queueLengthForwarderConfig.EnableInstallers();
+queueLengthForwarderConfig.EnableFeature<ReportNativeQueueLength>();
+
+queueLengthForwarderConfig.UseSerialization<SystemJsonSerializer>();
+queueLengthForwarderConfig.EnableMetrics().SendMetricDataToServiceControl("Particular.Monitoring", TimeSpan.FromMilliseconds(5000));
+
+builder.UseNServiceBus(queueLengthForwarderConfig);
 
 await builder.Build().RunAsync();
 
