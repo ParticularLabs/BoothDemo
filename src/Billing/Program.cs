@@ -39,6 +39,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? 
             MessagesSerializationContext.Default
         }
     });
+    cfg.CustomDiagnosticsWriter((diagnostics, ct) => Task.CompletedTask);
 
     //var transport = new LearningTransport
     //{

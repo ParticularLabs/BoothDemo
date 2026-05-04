@@ -31,6 +31,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s)
 {
     var cfg = new EndpointConfiguration("Shipping");
     cfg.LimitMessageProcessingConcurrencyTo(4);
+    cfg.CustomDiagnosticsWriter((diagnostics, ct) => Task.CompletedTask);
 
     var serializer = cfg.UseSerialization<SystemJsonSerializer>();
     serializer.Options(new JsonSerializerOptions

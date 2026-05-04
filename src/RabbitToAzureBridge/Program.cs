@@ -29,6 +29,10 @@ var shippingEndpoint = new BridgeEndpoint("Shipping");
 shippingEndpoint.RegisterPublisher<OrderPlaced>("Sales");
 asb.HasEndpoint(shippingEndpoint);
 
+asb.HasEndpoint("Particular.ServiceControl");
+asb.HasEndpoint("Particular.Monitoring");
+asb.HasEndpoint("error");
+asb.HasEndpoint("audit");
 
 bridgeConfiguration.AddTransport(rabbit);
 bridgeConfiguration.AddTransport(asb);
