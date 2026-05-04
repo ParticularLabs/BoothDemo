@@ -41,7 +41,6 @@ jobs:
             -c Release \
             -r ${{ matrix.runtime }} \
             --self-contained true \
-            -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -o "artifacts/${{ matrix.runtime }}/${{ steps.vars.outputs.name }}"
 
