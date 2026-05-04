@@ -68,6 +68,8 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
     queueBindings.BindSending("Particular.ServiceControl");
 
     endpointConfiguration.AuditProcessedMessagesTo("audit");
+    endpointConfiguration.AuditSagaStateChanges("audit");
+
     endpointConfiguration.SendHeartbeatTo("Particular.ServiceControl");
 
     endpointConfiguration.UniquelyIdentifyRunningInstance()
