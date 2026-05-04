@@ -123,7 +123,7 @@ public class UserInterface
                                 task = processingTasks[(sc.MessageId, sc.Stage)];
                                 task.Value = 100;
                                 task.StopTask();
-                                AnsiConsole.MarkupLine($"[grey]{sc.Stage} done for {sc.MessageId}[/]");
+                                AnsiConsole.MarkupLine($"[Gray84]{sc.Stage} done for {sc.MessageId}[/]");
                                 break;
 
                             case ProcessingCompleted tc:
@@ -157,7 +157,7 @@ public class UserInterface
                                 break;
 
                             case ControlStateChanged csc:
-                                AnsiConsole.MarkupLine($"[grey]{csc.Text}[/]");
+                                AnsiConsole.MarkupLine($"[Gray84]{csc.Text}[/]");
                                 break;
 
                             case SendingStarted ss:
