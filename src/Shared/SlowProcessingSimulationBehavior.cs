@@ -4,8 +4,8 @@ namespace Shared;
 
 public class SlowProcessingSimulationBehavior : Behavior<IInvokeHandlerContext>
 {
-    readonly int baseProcessingTime = 1000;
-    readonly int increment = 500;
+    readonly int baseProcessingTime = 100;
+    readonly int increment = 100;
     private int delayLevel = 0;
 
     public override async Task Invoke(IInvokeHandlerContext context, Func<Task> next)
@@ -23,6 +23,6 @@ public class SlowProcessingSimulationBehavior : Behavior<IInvokeHandlerContext>
 
     public string ReportState()
     {
-        return $"{Delay.TotalSeconds} seconds";
+        return $"{Delay.TotalSeconds:F1} seconds";
     }
 }
