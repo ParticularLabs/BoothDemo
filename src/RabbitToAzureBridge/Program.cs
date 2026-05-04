@@ -21,6 +21,8 @@ salesEndpoint.RegisterPublisher<OrderBilled>("Billing");
 salesEndpoint.RegisterPublisher<OrderShipped>("Shipping");
 rabbit.HasEndpoint(salesEndpoint);
 
+rabbit.HasEndpoint("ClientUI");
+
 var billingEndpoint = new BridgeEndpoint("Billing");
 billingEndpoint.RegisterPublisher<OrderPlaced>("Sales");
 asb.HasEndpoint(billingEndpoint);
