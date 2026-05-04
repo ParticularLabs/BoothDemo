@@ -53,7 +53,7 @@ endpointConfiguration.EnableInstallers();
 var metrics = endpointConfiguration.EnableMetrics();
 metrics.SendMetricDataToServiceControl(
     "Particular.Monitoring",
-    TimeSpan.FromMilliseconds(500)
+    TimeSpan.FromMilliseconds(5000)
 );
 
 routing.RouteToEndpoint(typeof(PlaceOrder), "Sales");

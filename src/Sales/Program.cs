@@ -78,7 +78,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
 
     metrics.SendMetricDataToServiceControl(
         "Particular.Monitoring",
-        TimeSpan.FromMilliseconds(500)
+        TimeSpan.FromMilliseconds(5000)
     );
 
     endpointConfiguration.UsePersistence<NonDurablePersistence>();

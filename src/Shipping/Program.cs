@@ -63,7 +63,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s)
     var metrics = cfg.EnableMetrics();
     metrics.SendMetricDataToServiceControl(
         "Particular.Monitoring",
-        TimeSpan.FromMilliseconds(500)
+        TimeSpan.FromMilliseconds(5000)
     );
 
     var queueBindings = cfg.GetSettings().Get<QueueBindings>();
