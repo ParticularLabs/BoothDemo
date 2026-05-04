@@ -15,7 +15,9 @@ class NativeQueueLengthReporter
         this.queues = queues;
     }
 
+#pragma warning disable PS0018
     public async Task ReportNativeQueueLength()
+#pragma warning restore PS0018
     {
         foreach (var monitoredQueue in queues)
         {
@@ -24,7 +26,9 @@ class NativeQueueLengthReporter
         }
     }
 
+#pragma warning disable PS0018
     static async Task<int> GetQueueLength(string queueName)
+#pragma warning restore PS0018
     {
         var host = "http://localhost:15672";
         var vhost = "%2F"; // "/" encoded
