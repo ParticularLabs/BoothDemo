@@ -30,7 +30,7 @@ class NativeQueueLengthReporter
     static async Task<int> GetQueueLength(string queueName)
 #pragma warning restore PS0018
     {
-        var host = "http://localhost:15672";
+        var host = "http://rabbitmq:15672";
         var vhost = "%2F"; // "/" encoded
 
         var username = "guest";
