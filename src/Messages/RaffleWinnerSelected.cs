@@ -2,8 +2,8 @@
 
 namespace Messages;
 
-public class PlaceOrder : ICommand
+public class RaffleWinnerSelected : IMessage
 {
     public required string OrderId { get; set; }
-    public required string Campaign { get; set; }
+    public required string Winner { get; set; }
 }

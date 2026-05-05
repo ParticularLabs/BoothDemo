@@ -20,6 +20,8 @@ public class PlaceOrderSaga(UserInterface ui) : Saga<PlaceOrderSagaData>, IAmSta
             OrderId = message.OrderId
         };
 
+        Data.IsRaffle = message.Campaign == "Techorama2026";
+
         var publishOptions = new PublishOptions();
         publishOptions.SetMessageId(MessageIdHelper.GetHumanReadableMessageId());
         await context.Publish(orderPlaced, publishOptions);
@@ -29,23 +31,30 @@ public class PlaceOrderSaga(UserInterface ui) : Saga<PlaceOrderSagaData>, IAmSta
     public Task Handle(OrderBilled message, IMessageHandlerContext context)
     {
         Data.IsBilled = true;
-        return TryComplete();
+        return TryComplete(context);
     }
 
     public Task Handle(OrderShipped message, IMessageHandlerContext context)
     {
         Data.IsShipped = true;
-        return TryComplete();
+        return TryComplete(context);
     }
 
 #pragma warning disable PS0018
-    async Task TryComplete()
+    async Task TryComplete(IMessageHandlerContext context)
 #pragma warning restore PS0018
     {
         if (Data.IsBilled && Data.IsShipped)
         {
             MarkAsComplete();
             await ui.SendEvent(new OrderSagaCompleted(Data.OrderId));
+            if (Data.IsRaffle)
+            {
+                await context.Publish(new RaffleOrderCompleted
+                {
+                    OrderId = Data.OrderId,
+                });
+            }
         }
     }
 }
@@ -57,4 +66,5 @@ public class PlaceOrderSagaData : ContainSagaData
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public bool IsShipped { get; set; }
     public bool IsBilled { get; set; }
+    public bool IsRaffle { get; set; }
 }

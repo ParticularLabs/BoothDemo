@@ -1,13 +1,15 @@
 using Messages;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using NServiceBus;
+using NServiceBus.Configuration.AdvancedExtensibility;
 using NServiceBus.Extensions.Logging;
 using NServiceBus.Logging;
+using NServiceBus.Transport;
 using Shared;
 using System.Reflection;
 using System.Text.Json;
-using NServiceBus.Configuration.AdvancedExtensibility;
-using NServiceBus.Transport;
+using NpgsqlTypes;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -55,11 +57,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
         }
     });
 
-    //var transport = new LearningTransport
-    //{
-    //    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport"),
-    //    TransportTransactionMode = TransportTransactionMode.ReceiveOnly
-    //};
     var connectionString = Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
     var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
     endpointConfiguration.UseTransport(transport);
@@ -83,7 +80,18 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
         TimeSpan.FromMilliseconds(5000)
     );
 
-    endpointConfiguration.UsePersistence<NonDurablePersistence>();
+    var postgresConnectionString = Environment.GetEnvironmentVariable("Postgres_ConnectionString")!;
+    var persistence = endpointConfiguration.UsePersistence<SqlPersistence>();
+    var dialect = persistence.SqlDialect<SqlDialect.PostgreSql>();
+    persistence.ConnectionBuilder(() => new NpgsqlConnection(postgresConnectionString));
+
+    dialect.JsonBParameterModifier(
+        modifier: parameter =>
+        {
+            var npgsqlParameter = (NpgsqlParameter)parameter;
+            npgsqlParameter.NpgsqlDbType = NpgsqlDbType.Jsonb;
+        });
+
     endpointConfiguration.EnableOutbox();
 
     endpointConfiguration.EnableOpenTelemetry();

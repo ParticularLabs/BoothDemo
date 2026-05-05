@@ -40,6 +40,12 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
         ui.BindButton(key, "Sending a message", () => manualModeSemaphore.Release());
     }
 
+    public void BindRaffleMode(char key)
+    {
+        ui.BindToggle(key, "Raffle mode", () => raffleMode = true, () => raffleMode = false);
+        ui.BindButton(key, "Sending a message", () => manualModeSemaphore.Release());
+    }
+
     int EffectiveRate => Math.Max(NoiseModifiedRate, 0);
     int NoiseModifiedRate => rate * batchSize + noiseComponent;
 
@@ -138,7 +144,8 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
     {
         var placeOrderCommand = new PlaceOrder
         {
-            OrderId = Guid.NewGuid().ToString()
+            OrderId = Guid.NewGuid().ToString(),
+            Campaign = raffleMode ? "Website" : "Techorama2026"
         };
 
         var messageId = MessageIdHelper.GetHumanReadableMessageId();
@@ -168,6 +175,7 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
     DateTime nextReset;
     int currentIntervalCount;
     int rate = 0;
+    bool raffleMode;
     private int noiseComponent = 0;
     int noiseFactor = 0;
     private int duplicateLikelihood;

@@ -19,6 +19,8 @@
     <PackageReference Include="NServiceBus.Metrics.ServiceControl" Version="5.*" />
     <PackageReference Include="NServiceBus.SagaAudit" Version="5.*" />
     <PackageReference Include="NServiceBus.Persistence.NonDurable" Version="2.*" />
+    <PackageReference Include="NServiceBus.Persistence.Sql" Version="8.*" />
+    <PackageReference Include="npgsql" Version="8.*" />
     <PackageReference Include="NServiceBus.Extensions.Logging" Version="3.*" />
   </ItemGroup>
 
