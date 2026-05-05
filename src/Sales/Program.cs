@@ -80,6 +80,8 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
         TimeSpan.FromMilliseconds(5000)
     );
 
+    //endpointConfiguration.UsePersistence<NonDurablePersistence>();
+
     var postgresConnectionString = Environment.GetEnvironmentVariable("Postgres_ConnectionString")!;
     var persistence = endpointConfiguration.UsePersistence<SqlPersistence>();
     var dialect = persistence.SqlDialect<SqlDialect.PostgreSql>();

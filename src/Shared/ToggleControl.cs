@@ -21,7 +21,7 @@ class ToggleControl : IControl
 
     public bool Match(char input, int? param, out string? log)
     {
-        if (input == toggleKey)
+        if (input == char.ToLower(toggleKey))
         {
             enabled = !enabled;
             if (enabled)
@@ -35,6 +35,23 @@ class ToggleControl : IControl
                 disableAction();
             }
             return true;
+        }
+        else if (input == char.ToUpper(toggleKey) && param != null)
+        {
+            if (param.Value == 1)
+            {
+                enabled = true;
+                log = $"{name} enabled.";
+                enableAction();
+                return true;
+            }
+            else if (param.Value == 0)
+            {
+                enabled = false;
+                log = $"{name} disabled.";
+                disableAction();
+                return true;
+            }
         }
 
         log = null;

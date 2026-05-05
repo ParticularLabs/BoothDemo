@@ -31,6 +31,8 @@ EndpointConfiguration PrepareEndpointConfiguration()
     {
         TransportTransactionMode = TransportTransactionMode.ReceiveOnly
     };
+    cfg.AuditProcessedMessagesTo("audit");
+    cfg.SendFailedMessagesTo("error");
     cfg.UseTransport(transport);
     cfg.UsePersistence<NonDurablePersistence>();
     cfg.EnableInstallers();
