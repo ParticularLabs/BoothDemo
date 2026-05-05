@@ -43,7 +43,6 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
     public void BindRaffleMode(char key)
     {
         ui.BindToggle(key, "Raffle mode", () => raffleMode = true, () => raffleMode = false);
-        ui.BindButton(key, "Sending a message", () => manualModeSemaphore.Release());
     }
 
     int EffectiveRate => Math.Max(NoiseModifiedRate, 0);
