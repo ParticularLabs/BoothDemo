@@ -144,7 +144,7 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
         var placeOrderCommand = new PlaceOrder
         {
             OrderId = Guid.NewGuid().ToString(),
-            Campaign = raffleMode ? "Website" : "Techorama2026"
+            Campaign = raffleMode ? "Techorama2026" : "Website"
         };
 
         var messageId = MessageIdHelper.GetHumanReadableMessageId();
