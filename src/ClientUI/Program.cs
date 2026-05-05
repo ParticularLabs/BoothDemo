@@ -84,6 +84,7 @@ simulatedCustomers.BindDuplicateLikelihoodDial( 'w', 's');
 simulatedCustomers.BindNoiseLevelDial('e', 'd');
 
 simulatedCustomers.BindManualSendButton('b');
+simulatedCustomers.BindRaffleMode('r');
 
 var simulatedWork = simulatedCustomers.Run(cancellation.Token);
 
