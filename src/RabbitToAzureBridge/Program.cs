@@ -32,8 +32,6 @@ var shippingEndpoint = new BridgeEndpoint("Shipping");
 shippingEndpoint.RegisterPublisher<OrderPlaced>("Sales");
 asb.HasEndpoint(shippingEndpoint);
 
-asb.HasEndpoint("Raffle");
-
 asb.HasEndpoint("Particular.ServiceControl");
 asb.HasEndpoint("Particular.Monitoring");
 asb.HasEndpoint("error");

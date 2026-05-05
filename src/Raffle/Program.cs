@@ -26,7 +26,7 @@ EndpointConfiguration PrepareEndpointConfiguration()
     });
     cfg.CustomDiagnosticsWriter((diagnostics, ct) => Task.CompletedTask);
 
-    var azureConnectionString = Environment.GetEnvironmentVariable("AzureServiceBus_ConnectionString")!;
+    var azureConnectionString = Environment.GetEnvironmentVariable("AzureServiceBus_Techorama_ConnectionString")!;
     var transport = new AzureServiceBusTransport(azureConnectionString, TopicTopology.Default)
     {
         TransportTransactionMode = TransportTransactionMode.ReceiveOnly
