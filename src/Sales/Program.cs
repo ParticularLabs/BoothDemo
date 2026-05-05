@@ -16,12 +16,12 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 var instancePostfix = args.FirstOrDefault();
 var title = string.IsNullOrEmpty(instancePostfix) ? "Processing (Sales)" : $"Sales - {instancePostfix}";
 var instanceName = string.IsNullOrEmpty(instancePostfix) ? "sales" : $"sales-{instancePostfix}";
-var prometheusPortString = args.Skip(1).FirstOrDefault();
+var showHelp = instancePostfix is null or "1";
 
 var instanceId = DeterministicGuid.Create("Sales", instanceName);
 
-var ui = new UserInterface();
-var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString), ui);
+var ui = new UserInterface(showHelp);
+var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName), ui);
 
 endpointControls.BindProcessingTimeDial('q', 'a');
 endpointControls.BindSimulatedFailuresDial('w', 's');
@@ -32,18 +32,13 @@ endpointControls.BindAutoThrottleToggle('p');
 
 endpointControls.BindFailureProcessingButton(ui, 'x');
 
-if (prometheusPortString != null)
-{
-    OpenTelemetryUtils.ConfigureOpenTelemetry("Sales", instanceId.ToString(), int.Parse(prometheusPortString));
-}
-
 endpointControls.Start();
 
 await ui.RunLoop(title);
 
 await endpointControls.StopEndpoint();
 
-EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName, string? prometheusPortString1)
+EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName)
 {
     var endpointConfiguration = new EndpointConfiguration("Sales");
     endpointConfiguration.LimitMessageProcessingConcurrencyTo(1);

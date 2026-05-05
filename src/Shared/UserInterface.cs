@@ -7,7 +7,7 @@ using System.Threading.Channels;
 
 namespace Shared;
 
-public class UserInterface
+public class UserInterface(bool showHelp = true)
 {
     List<IControl> controls = [];
 
@@ -74,17 +74,23 @@ public class UserInterface
             }
         });
 
-        return AnsiConsole.Progress()
+        var progress = AnsiConsole.Progress()
             .AutoClear(true)
             .Columns(new ProgressColumn[]
-                {
-                    new TaskDescriptionColumn(),    // Task description
-                    new ProgressBarColumn(),        // Progress bar
-                    new PercentageColumn(),         // Percentage
-                    new ElapsedTimeColumn(),      // Remaining time
-                    new SpinnerColumn(),            // Spinner
-                })
-            .UseRenderHook((renderable, tasks) => RenderHook(tasks, renderable))
+            {
+                new TaskDescriptionColumn(),    // Task description
+                new ProgressBarColumn(),        // Progress bar
+                new PercentageColumn(),         // Percentage
+                new ElapsedTimeColumn(),      // Remaining time
+                new SpinnerColumn(),            // Spinner
+            });
+
+        if (showHelp)
+        {
+            progress.UseRenderHook((renderable, tasks) => RenderHook(tasks, renderable));
+        }
+
+        return progress
             .StartAsync(async ctx =>
             {
                 var processingTasks = new Dictionary<(string MessageId, ProcessingStage Stage), ProgressTask>();
