@@ -32,6 +32,10 @@ var shippingEndpoint = new BridgeEndpoint("Shipping");
 shippingEndpoint.RegisterPublisher<OrderPlaced>("Sales");
 asb.HasEndpoint(shippingEndpoint);
 
+var raffleEndpoint = new BridgeEndpoint("Raffle");
+raffleEndpoint.RegisterPublisher<RaffleOrderCompleted>("Sales");
+asb.HasEndpoint(raffleEndpoint);
+
 asb.HasEndpoint("Particular.ServiceControl");
 asb.HasEndpoint("Particular.Monitoring");
 asb.HasEndpoint("error");
