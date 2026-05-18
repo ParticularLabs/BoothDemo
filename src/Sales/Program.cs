@@ -52,7 +52,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
         }
     });
 
-    var connectionString = Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
+    var connectionString = "host=192.168.1.106";// Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
     var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
     endpointConfiguration.UseTransport(transport);
     var queueBindings = endpointConfiguration.GetSettings().Get<QueueBindings>();
@@ -75,19 +75,19 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
         TimeSpan.FromMilliseconds(5000)
     );
 
-    //endpointConfiguration.UsePersistence<NonDurablePersistence>();
+    endpointConfiguration.UsePersistence<NonDurablePersistence>();
 
-    var postgresConnectionString = Environment.GetEnvironmentVariable("Postgres_ConnectionString")!;
-    var persistence = endpointConfiguration.UsePersistence<SqlPersistence>();
-    var dialect = persistence.SqlDialect<SqlDialect.PostgreSql>();
-    persistence.ConnectionBuilder(() => new NpgsqlConnection(postgresConnectionString));
+    //var postgresConnectionString = Environment.GetEnvironmentVariable("Postgres_ConnectionString")!;
+    //var persistence = endpointConfiguration.UsePersistence<SqlPersistence>();
+    //var dialect = persistence.SqlDialect<SqlDialect.PostgreSql>();
+    //persistence.ConnectionBuilder(() => new NpgsqlConnection(postgresConnectionString));
 
-    dialect.JsonBParameterModifier(
-        modifier: parameter =>
-        {
-            var npgsqlParameter = (NpgsqlParameter)parameter;
-            npgsqlParameter.NpgsqlDbType = NpgsqlDbType.Jsonb;
-        });
+    //dialect.JsonBParameterModifier(
+    //    modifier: parameter =>
+    //    {
+    //        var npgsqlParameter = (NpgsqlParameter)parameter;
+    //        npgsqlParameter.NpgsqlDbType = NpgsqlDbType.Jsonb;
+    //    });
 
     endpointConfiguration.EnableOutbox();
 

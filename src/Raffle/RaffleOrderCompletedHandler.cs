@@ -5,12 +5,7 @@ namespace Raffle;
 
 public class RaffleOrderCompletedHandler(ILogger<RaffleOrderCompletedHandler> logger) : IHandleMessages<RaffleOrderCompleted>
 {
-    static readonly string[] names =
-    [
-        "Szymon Pobiega",
-        "Andreas Öhlund"
-    ];
-
+    public static string[] Names;
 
     public Task Handle(RaffleOrderCompleted message, IMessageHandlerContext context)
     {
@@ -18,12 +13,12 @@ public class RaffleOrderCompletedHandler(ILogger<RaffleOrderCompletedHandler> lo
         logger.LogInformation("Selecting the raffle winner for order {orderId}", orderId);
 
         var random = Random.Shared;
-        var winnerIndex = random.Next(names.Length);
+        var winnerIndex = random.Next(Names.Length);
 
         return context.SendLocal(new RaffleWinnerSelected
         {
             OrderId = message.OrderId,
-            Winner = names[winnerIndex]
+            Winner = Names[winnerIndex]
         });
     }
 }

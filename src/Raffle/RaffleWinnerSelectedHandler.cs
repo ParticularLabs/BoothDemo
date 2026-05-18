@@ -10,7 +10,9 @@ public class RaffleWinnerSelectedHandler(ILogger<RaffleOrderCompletedHandler> lo
         var orderId = message.OrderId;
         logger.LogInformation("Raffle winner selected for order {orderId}", orderId);
 
+        throw new Exception("And the winner is....");
+
         //HINT: We need to handle it to audit the message
-        return Task.CompletedTask;
+        //return Task.CompletedTask;
     }
 }

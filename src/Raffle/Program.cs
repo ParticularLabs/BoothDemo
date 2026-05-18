@@ -1,8 +1,21 @@
 ﻿using Messages;
 using Microsoft.Extensions.Hosting;
+using Raffle;
 using System.Text.Json;
 
 Console.Title = "Raffle";
+
+var attendees = await File.ReadAllLinesAsync("C:\\Particular\\BoothDemo\\raffle.txt");
+
+foreach (var name in attendees)
+{
+    Console.WriteLine(name);
+}
+
+RaffleOrderCompletedHandler.Names = attendees;
+
+Console.WriteLine();
+Console.WriteLine("Stating the raffle endpoint...");
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -31,6 +44,8 @@ EndpointConfiguration PrepareEndpointConfiguration()
     {
         TransportTransactionMode = TransportTransactionMode.ReceiveOnly
     };
+    cfg.Recoverability().Immediate(x => x.NumberOfRetries(0));
+    cfg.Recoverability().Delayed(x => x.NumberOfRetries(0));
     cfg.AuditProcessedMessagesTo("audit");
     cfg.SendFailedMessagesTo("error");
     cfg.UseTransport(transport);
