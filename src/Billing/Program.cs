@@ -4,6 +4,7 @@ using NServiceBus.Configuration.AdvancedExtensibility;
 using NServiceBus.Transport;
 using Shared;
 using System.Text.Json;
+using NServiceBus;
 
 var instancePostfix = args.FirstOrDefault();
 
@@ -23,7 +24,7 @@ if (prometheusPortString != null)
     OpenTelemetryUtils.ConfigureOpenTelemetry("Billing", instanceId.ToString(), int.Parse(prometheusPortString));
 }
 
-builder.UseNServiceBus(endpointConfiguration);
+builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
 await builder.Build().RunAsync();
 
 EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? prometheusPortString1)
@@ -76,7 +77,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? 
     cfg.UsePersistence<NonDurablePersistence>();
     cfg.EnableOutbox();
 
-    cfg.EnableOpenTelemetry();
+   // cfg.EnableOpenTelemetry();
     cfg.EnableInstallers();
 
     return cfg;

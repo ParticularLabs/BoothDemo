@@ -20,7 +20,7 @@ public static class OpenTelemetryUtils
             .SetResourceBuilder(resourceBuilder)
             .AddMeter("NServiceBus.Core*");
 
-        meterProviderBuilder.AddPrometheusHttpListener(options => options.UriPrefixes = [$"http://127.0.0.1:{port}"]);
+        meterProviderBuilder.AddPrometheusHttpListener();
 
         var meterProvider = meterProviderBuilder.Build();
 

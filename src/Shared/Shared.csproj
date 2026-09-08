@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NServiceBus" Version="9.*" />
+    <PackageReference Include="NServiceBus" Version="10.2.9" />
     <PackageReference Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.*-*" />
-    <PackageReference Include="Spectre.Console" Version="0.55.0" />
-    <PackageReference Include="Spectre.Console.ImageSharp" Version="0.55.0" />
-    <PackageReference Include="Spectre.Console.Json" Version="0.55.0" />
-    <PackageReference Include="Spectre.Console.Testing" Version="0.55.0" />
+    <PackageReference Include="Spectre.Console" Version="0.57.2" />
+    <PackageReference Include="Spectre.Console.ImageSharp" Version="0.57.2" />
+    <PackageReference Include="Spectre.Console.Json" Version="0.57.2" />
+    <PackageReference Include="Spectre.Console.Testing" Version="0.57.2" />
   </ItemGroup>
 
 </Project>

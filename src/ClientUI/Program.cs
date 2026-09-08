@@ -47,7 +47,7 @@ endpointConfiguration.UniquelyIdentifyRunningInstance()
     .UsingCustomIdentifier(instanceId)
     .UsingCustomDisplayName(instanceName);
 
-endpointConfiguration.EnableOpenTelemetry();
+//endpointConfiguration.EnableOpenTelemetry();
 endpointConfiguration.EnableInstallers();
 
 var metrics = endpointConfiguration.EnableMetrics();
