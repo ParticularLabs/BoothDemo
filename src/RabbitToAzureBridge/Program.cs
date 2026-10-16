@@ -1,6 +1,7 @@
 ﻿using Messages;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 Console.Title = "Bridge";
 
@@ -47,17 +48,14 @@ bridgeConfiguration.AddTransport(asb);
 var builder = Host.CreateApplicationBuilder();
 builder.UseNServiceBusBridge(bridgeConfiguration);
 
-var queueLengthForwarderConfig = new EndpointConfiguration("QueueLengthForwarder");
-queueLengthForwarderConfig.UseTransport(new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum),
-    rabbitMqConnectionString));
-
-queueLengthForwarderConfig.EnableInstallers();
-queueLengthForwarderConfig.EnableFeature<ReportNativeQueueLength>();
-
-queueLengthForwarderConfig.UseSerialization<SystemJsonSerializer>();
-queueLengthForwarderConfig.EnableMetrics().SendMetricDataToServiceControl("Particular.Monitoring", TimeSpan.FromMilliseconds(5000));
-
-builder.UseNServiceBus(queueLengthForwarderConfig);
+// Reports the length of the RabbitMQ Sales queue to Monitoring. The message goes to the Particular.Monitoring
+// queue in RabbitMQ, from where the bridge forwards it to Azure Service Bus.
+builder.Services.AddSingleton<IQueueLengthProvider>(new RabbitMQManagementQueueLengthProvider());
+builder.Services.AddHostedService(sp => new QueueLengthReporter(
+    new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum), rabbitMqConnectionString),
+    sp.GetRequiredService<IQueueLengthProvider>(),
+    [new MonitoredQueue("Sales", "Sales")],
+    sp.GetRequiredService<ILogger<QueueLengthReporter>>()));
 
 await builder.Build().RunAsync();
 
