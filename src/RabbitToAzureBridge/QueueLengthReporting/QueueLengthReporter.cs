@@ -8,7 +8,14 @@ using NServiceBus.Transport;
 /// <summary>
 /// A queue whose length is reported to ServiceControl Monitoring as the queue length of the given endpoint.
 /// </summary>
-record MonitoredQueue(string EndpointName, string QueueName);
+/// <param name="EndpointName">The endpoint the queue length is attributed to in Monitoring.</param>
+/// <param name="QueueName">The queue to read the length of.</param>
+/// <param name="ReportedQueueName">
+/// The queue name reported to Monitoring, if different from <paramref name="QueueName"/>. Monitoring sums the lengths of
+/// all queues reported for an endpoint, so use a distinct name when Monitoring also tracks a queue with the same name
+/// itself (e.g. a bridge proxy queue on its own transport); otherwise the two readings get averaged together.
+/// </param>
+record MonitoredQueue(string EndpointName, string QueueName, string? ReportedQueueName = null);
 
 /// <summary>
 /// Periodically reads queue lengths using an <see cref="IQueueLengthProvider"/> and sends them to ServiceControl Monitoring
@@ -25,6 +32,7 @@ sealed class QueueLengthReporter(
 {
     // Must match what ServiceControl Monitoring expects (see NServiceBus.Metrics.ServiceControl)
     const string MetricTypeHeader = "NServiceBus.Metric.Type";
+    const string MetricInstanceIdHeader = "NServiceBus.Metric.InstanceId";
     const string QueueLengthMetricType = "QueueLength";
     const string TaggedLongValueContentType = "TaggedLongValueWriterOccurrence";
     const long WireFormatVersion = 1;
@@ -83,14 +91,17 @@ sealed class QueueLengthReporter(
             var lengths = new List<(string QueueName, long Length)>();
             foreach (var queue in endpointQueues)
             {
-                lengths.Add((queue.QueueName, await queueLengthProvider.GetQueueLength(queue.QueueName, cancellationToken)));
+                lengths.Add((queue.ReportedQueueName ?? queue.QueueName, await queueLengthProvider.GetQueueLength(queue.QueueName, cancellationToken)));
             }
 
             var headers = new Dictionary<string, string>
             {
                 [Headers.OriginatingEndpoint] = endpointQueues.Key,
                 [Headers.ContentType] = TaggedLongValueContentType,
-                [MetricTypeHeader] = QueueLengthMetricType
+                [MetricTypeHeader] = QueueLengthMetricType,
+                // All Monitoring handlers of TaggedLongValueOccurrence (not only the queue length one) resolve the endpoint
+                // instance from the headers. Without this header they require OriginatingHostId and HostDisplayName instead.
+                [MetricInstanceIdHeader] = nameof(QueueLengthReporter)
             };
 
             var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, Serialize(timestamp, lengths));
