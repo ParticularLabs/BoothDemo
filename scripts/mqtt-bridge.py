@@ -38,6 +38,7 @@ def callback(ch, method, properties, body):
                 "NServiceBus.OriginatingEndpoint" : "ClientUI",
                 "NServiceBus.OriginatingMachine" : "TheButton",
                 "NServiceBus.ReplyToAddress" : "ClientUI",
+		"MonitoringDemo.ManualMode" : "True",
                 "NServiceBus.TimeSent" : datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S:%f Z"),
             }
         )

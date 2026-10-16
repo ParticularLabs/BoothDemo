@@ -24,16 +24,16 @@ def send_tmux(keys: str):
 
 
 COMMANDS_PRESS = {
-    "BTN_NORTH": tmux_all_panes_send_keys("x"),
-    "BTN_SOUTH": tmux_all_panes_send_keys("I1"),
-    "BTN_EAST": tmux_all_panes_send_keys("O1"),
-    "BTN_C": tmux_all_panes_send_keys("P1"),
+    "BTN_TOP": tmux_all_panes_send_keys("x"),
+    "BTN_TRIGGER": tmux_all_panes_send_keys("I1"),
+    "BTN_THUMB": tmux_all_panes_send_keys("O1"),
+    "BTN_THUMB2": tmux_all_panes_send_keys("P1"),
 }
 
 COMMANDS_RELEASE = {
-    "BTN_SOUTH": tmux_all_panes_send_keys("I0"),
-    "BTN_EAST": tmux_all_panes_send_keys("O0"),
-    "BTN_C": tmux_all_panes_send_keys("P0"),
+    "BTN_TRIGGER": tmux_all_panes_send_keys("I0"),
+    "BTN_THUMB": tmux_all_panes_send_keys("O0"),
+    "BTN_THUMB2": tmux_all_panes_send_keys("P0"),
 }
 
 
@@ -66,10 +66,10 @@ def main() -> None:
     print(f"Listening on: {dev.path} - {dev.name}", flush=True)
 
     watched_buttons = {
-        ecodes.ecodes["BTN_NORTH"]: "BTN_NORTH",
-        ecodes.ecodes["BTN_SOUTH"]: "BTN_SOUTH",
-        ecodes.ecodes["BTN_EAST"]: "BTN_EAST",
-        ecodes.ecodes["BTN_C"]: "BTN_C",
+        ecodes.ecodes["BTN_TOP"]: "BTN_TOP",
+        ecodes.ecodes["BTN_TRIGGER"]: "BTN_TRIGGER",
+        ecodes.ecodes["BTN_THUMB"]: "BTN_THUMB",
+        ecodes.ecodes["BTN_THUMB2"]: "BTN_THUMB2",
     }
 
     last_rx = None
