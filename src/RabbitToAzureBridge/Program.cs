@@ -18,7 +18,7 @@ var asb = new BridgeTransport(new AzureServiceBusTransport(azureConnectionString
     AutoCreateQueues = true
 };
 
-var salesEndpoint = new BridgeEndpoint("Sales");
+var salesEndpoint = new BridgeEndpoint("Sales-Bridge");
 salesEndpoint.RegisterPublisher<OrderBilled>("Billing");
 salesEndpoint.RegisterPublisher<OrderShipped>("Shipping");
 rabbit.HasEndpoint(salesEndpoint);
@@ -26,15 +26,15 @@ rabbit.HasEndpoint(salesEndpoint);
 rabbit.HasEndpoint("ClientUI");
 
 var billingEndpoint = new BridgeEndpoint("Billing");
-billingEndpoint.RegisterPublisher<OrderPlaced>("Sales");
+billingEndpoint.RegisterPublisher<OrderPlaced>("Sales-Bridge");
 asb.HasEndpoint(billingEndpoint);
 
 var shippingEndpoint = new BridgeEndpoint("Shipping");
-shippingEndpoint.RegisterPublisher<OrderPlaced>("Sales");
+shippingEndpoint.RegisterPublisher<OrderPlaced>("Sales-Bridge");
 asb.HasEndpoint(shippingEndpoint);
 
 var raffleEndpoint = new BridgeEndpoint("Raffle");
-raffleEndpoint.RegisterPublisher<RaffleOrderCompleted>("Sales");
+raffleEndpoint.RegisterPublisher<RaffleOrderCompleted>("Sales-Bridge");
 asb.HasEndpoint(raffleEndpoint);
 
 asb.HasEndpoint("Particular.ServiceControl");
