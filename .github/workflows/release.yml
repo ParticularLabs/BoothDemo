@@ -49,3 +49,9 @@ jobs:
         with:
           name: ${{ matrix.runtime }}-${{ steps.vars.outputs.name }}
           path: artifacts/${{ matrix.runtime }}/${{ steps.vars.outputs.name }}
+
+      - name: Upload scripts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scripts
+          path: scripts/
