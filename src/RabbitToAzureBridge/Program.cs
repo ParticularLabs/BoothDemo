@@ -18,7 +18,7 @@ var asb = new BridgeTransport(new AzureServiceBusTransport(azureConnectionString
     AutoCreateQueues = true
 };
 
-var salesEndpoint = new BridgeEndpoint("Sales-Bridge");
+var salesEndpoint = new BridgeEndpoint("Sales-Bridge", "Sales");
 salesEndpoint.RegisterPublisher<OrderBilled>("Billing");
 salesEndpoint.RegisterPublisher<OrderShipped>("Shipping");
 rabbit.HasEndpoint(salesEndpoint);
