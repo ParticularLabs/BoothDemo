@@ -101,7 +101,7 @@ sealed class QueueLengthReporter(
                 [MetricTypeHeader] = QueueLengthMetricType,
                 // All Monitoring handlers of TaggedLongValueOccurrence (not only the queue length one) resolve the endpoint
                 // instance from the headers. Without this header they require OriginatingHostId and HostDisplayName instead.
-                [MetricInstanceIdHeader] = nameof(QueueLengthReporter)
+                [MetricInstanceIdHeader] = "sales-1"
             };
 
             var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, Serialize(timestamp, lengths));
