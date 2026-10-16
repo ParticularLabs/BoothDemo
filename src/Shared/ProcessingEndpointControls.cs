@@ -112,14 +112,14 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
 
     public void BindSimulatedFailuresDial(char upKey, char downKey)
     {
-        ui.BindDial(upKey, downKey, "database failure rate",
+        ui.BindDial(upKey, downKey, "failure rate",
             () => databaseFailureSimulationBehavior.ReportState(),
             x => databaseFailureSimulationBehavior.SetFailureLevel(x));
     }
 
     public void BindDatabaseDownSimulationToggle(char toggleKey)
     {
-        ui.BindToggle(toggleKey, "database maintenance simulation.",
+        ui.BindToggle(toggleKey, "database maintenance",
             () => databaseDownSimulationBehavior.Down(),
             () => databaseDownSimulationBehavior.Up());
     }

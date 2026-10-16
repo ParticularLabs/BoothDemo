@@ -60,13 +60,7 @@ class ToggleControl : IControl
 
     public Renderable ReportState()
     {
-        var stateDesc = enabled ? "enabled" : "disabled";
-        return new Columns(
-            new Markup($"{name} {Emoji.Known.UpDownArrow}[bold]{toggleKey}[/] [[[bold]{stateDesc}[/]]]"),
-            new Markup(""))
-        {
-            Padding = new Padding(1),
-            Expand = false
-        };
+        var stateDesc = enabled ? "[bold green][[enabled]][/]" : "[grey][[disabled]][/]";
+        return new Markup($"{KeyBadge.Render(toggleKey)} {Markup.Escape(name)} {stateDesc}");
     }
 }

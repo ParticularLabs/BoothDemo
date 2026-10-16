@@ -75,12 +75,16 @@ class DialControl : IControl
 
     public Renderable ReportState()
     {
-        return new Columns(
-            new Markup($"{name} \ud83d\udd3c[bold]{upKey}[/] \ud83d\udd3d[bold]{downKey}[/] {getState()}"),
-            new SettingIndicator(value))
-        {
-            Padding = new Padding(1),
-            Expand = false
-        };
+        var content = new Rows(
+            Align.Center(new VerticalSettingIndicator(value)),
+            new Text(""),
+            Align.Center(new Markup($"[bold yellow]{Markup.Escape(getState())}[/]")),
+            Align.Center(new Markup($"\u25b2 {KeyBadge.Render(upKey)}   \u25bc {KeyBadge.Render(downKey)}")));
+
+        return new Panel(content)
+            .Header($"[bold] {Markup.Escape(name)} [/]", Justify.Center)
+            .RoundedBorder()
+            .BorderColor(Color.Grey50)
+            .Expand();
     }
 }

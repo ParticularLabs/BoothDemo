@@ -31,12 +31,6 @@ class ButtonControl : IControl
 
     public Renderable ReportState()
     {
-        return new Columns(
-            new Markup($"{name} {Emoji.Known.RightArrow} [bold]{buttonKey}[/]"),
-            new Markup(""))
-        {
-            Padding = new Padding(1),
-            Expand = false
-        };
+        return new Markup($"{KeyBadge.Render(buttonKey)} {Markup.Escape(name)}");
     }
 }

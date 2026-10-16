@@ -209,10 +209,24 @@ public class UserInterface(bool showHelp = true)
 
     IRenderable RenderHook(IReadOnlyList<ProgressTask> tasks, IRenderable renderable)
     {
-        var content = new List<Renderable>();
-        foreach (var ctrl in controls)
+        var content = new List<IRenderable>();
+
+        var dials = controls.OfType<DialControl>().ToList();
+        if (dials.Count > 0)
         {
-            content.Add(ctrl.ReportState());
+            var dialGrid = new Grid().Expand();
+            for (var i = 0; i < dials.Count; i++)
+            {
+                dialGrid.AddColumn(new GridColumn().PadLeft(0).PadRight(i < dials.Count - 1 ? 1 : 0));
+            }
+            dialGrid.AddRow(dials.Select(d => d.ReportState()).ToArray());
+            content.Add(dialGrid);
+        }
+
+        var others = controls.Where(c => c is not DialControl).Select(c => c.ReportState()).ToList();
+        if (others.Count > 0)
+        {
+            content.Add(new Columns(others) { Padding = new Padding(0, 0, 4, 0), Expand = false });
         }
 
         var header = new Panel(new Rows(content)).Expand().RoundedBorder();
