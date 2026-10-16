@@ -10,7 +10,7 @@
     <ContainerImageName>raffle</ContainerImageName>
     <ContainerRegistry>ghcr.io</ContainerRegistry>
     <ContainerImageTags>latest</ContainerImageTags>
-    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:8.0</ContainerBaseImage>
+    <ContainerBaseImage>mcr.microsoft.com/dotnet/aspnet:10.0</ContainerBaseImage>
   </PropertyGroup>
 
   <ItemGroup>
