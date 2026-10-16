@@ -5,7 +5,9 @@ namespace Raffle;
 
 public class RaffleOrderCompletedHandler(ILogger<RaffleOrderCompletedHandler> logger) : IHandleMessages<RaffleOrderCompleted>
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public static string[] Names;
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
     public Task Handle(RaffleOrderCompleted message, IMessageHandlerContext context)
     {

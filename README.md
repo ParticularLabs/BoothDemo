@@ -119,3 +119,35 @@ There is a number of packages required to run the demo. Here's a list of debian 
 
 - tmux
 - gh
+
+## Starting up
+
+- Power up all devices
+- Ensure Gateway Pi can connect to the Internet
+- Open browser on the Gateway and verify:
+  - PostgreSQL database is up
+  - RabbitMQ broker is up
+  - All containers are up in Dockge
+- Open terminal window in Gateway
+- In one tab run `tmux-panes.sh`
+  - Log in to all panes using password `particular`
+  - In each pane run `sales/Sales X` where X is 1..3
+  - Verify all Sales endpoint are running
+- In Clockwork Pi (Client Pi) open a terminal window
+  - Run `start-client.sh`
+  - Press `b` a couple of times and verify is messages are processed by Sales
+- In Gateway browser verify that messages are properly bridged to Azure and not stuck in RabbitMQ
+- In Gateway terminal window open a new tab
+  - Run `attach-client.sh`
+  - Verify if you can see the same screen as on the Clockwork Pi
+- In Gateway terminal window open a new tab
+  - Run `pyhton3 mqtt-bridge.py`
+  - Press the button a couple of times
+  - Verify that Sales endpoint is processing messages
+- In Gateway terminal window open a new tab
+  - Run `sudo evtest` to see which device file is associated with the controller
+  - Run `python3 button-box.py <device file>` or `python3 button-box-saitek.py <device file>` to forward controller events to Sales
+  - Press some buttons to verify if events are forwrded
+- In Gateway terminal window open a new tab
+  - Run `python3 button-box-client <device file>` or `python3 button-box-client-saitek.py <device file>` to forward controller events to Client
+  - Press some buttons to verify if events are forwarded

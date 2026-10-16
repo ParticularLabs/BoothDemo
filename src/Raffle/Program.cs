@@ -21,7 +21,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 var endpointConfiguration = PrepareEndpointConfiguration();
 
-builder.UseNServiceBus(endpointConfiguration);
+builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
 await builder.Build().RunAsync();
 
 EndpointConfiguration PrepareEndpointConfiguration()

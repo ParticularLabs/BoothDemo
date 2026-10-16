@@ -91,7 +91,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
 
     endpointConfiguration.EnableOutbox();
 
-    endpointConfiguration.EnableOpenTelemetry();
+   // endpointConfiguration.EnableOpenTelemetry();
     endpointConfiguration.EnableInstallers();
 
     var loggerFactory = LoggerFactory.Create(builder =>

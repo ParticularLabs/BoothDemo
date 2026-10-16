@@ -73,7 +73,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s)
     cfg.UsePersistence<NonDurablePersistence>();
     cfg.EnableOutbox();
 
-    cfg.EnableOpenTelemetry();
+   // cfg.EnableOpenTelemetry();
     cfg.EnableInstallers();
 
     return cfg;
