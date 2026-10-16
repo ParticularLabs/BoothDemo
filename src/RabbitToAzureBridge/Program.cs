@@ -50,7 +50,7 @@ builder.UseNServiceBusBridge(bridgeConfiguration);
 
 // Reports the length of the RabbitMQ Sales queue to Monitoring. The message goes to the Particular.Monitoring
 // queue in RabbitMQ, from where the bridge forwards it to Azure Service Bus.
-builder.Services.AddSingleton<IQueueLengthProvider>(new RabbitMQManagementQueueLengthProvider());
+builder.Services.AddSingleton<IQueueLengthProvider>(new RabbitMQManagementQueueLengthProvider("http://rabbitmq:15672"));
 builder.Services.AddHostedService(sp => new QueueLengthReporter(
     new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum), rabbitMqConnectionString),
     sp.GetRequiredService<IQueueLengthProvider>(),

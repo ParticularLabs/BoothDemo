@@ -11,7 +11,7 @@ sealed class RabbitMQManagementQueueLengthProvider : IQueueLengthProvider, IDisp
     readonly HttpClient client;
     readonly string virtualHost;
 
-    public RabbitMQManagementQueueLengthProvider(string managementUrl = "http://localhost:15672", string username = "guest", string password = "guest", string virtualHost = "/")
+    public RabbitMQManagementQueueLengthProvider(string managementUrl, string username = "guest", string password = "guest", string virtualHost = "/")
     {
         this.virtualHost = Uri.EscapeDataString(virtualHost);
 
