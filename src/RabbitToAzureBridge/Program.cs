@@ -57,7 +57,9 @@ builder.Services.AddHostedService(sp => new QueueLengthReporter(
     new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum), rabbitMqConnectionString),
     sp.GetRequiredService<IQueueLengthProvider>(),
     [new MonitoredQueue("Sales", "Sales", ReportedQueueName: "Sales")],
-    sp.GetRequiredService<ILogger<QueueLengthReporter>>()));
+    sp.GetRequiredService<ILogger<QueueLengthReporter>>(),
+    // Monitoring does not interpolate between reports and its shortest graph (1 minute) has 1-second intervals
+    interval: TimeSpan.FromSeconds(1)));
 
 await builder.Build().RunAsync();
 
