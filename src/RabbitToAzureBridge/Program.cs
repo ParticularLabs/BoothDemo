@@ -56,7 +56,7 @@ builder.Services.AddSingleton<IQueueLengthProvider>(new RabbitMQManagementQueueL
 builder.Services.AddHostedService(sp => new QueueLengthReporter(
     new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum), rabbitMqConnectionString),
     sp.GetRequiredService<IQueueLengthProvider>(),
-    [new MonitoredQueue("Sales", "Sales", ReportedQueueName: "Sales@rabbitmq")],
+    [new MonitoredQueue("Sales", "Sales", ReportedQueueName: "Sales")],
     sp.GetRequiredService<ILogger<QueueLengthReporter>>()));
 
 await builder.Build().RunAsync();
