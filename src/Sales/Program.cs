@@ -90,7 +90,8 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
             npgsqlParameter.NpgsqlDbType = NpgsqlDbType.Jsonb;
         });
 
-    endpointConfiguration.EnableOutbox();
+    var outboxConfig = endpointConfiguration.EnableOutbox();
+    outboxConfig.KeepDeduplicationDataFor(TimeSpan.FromMinutes(5));
 
     endpointConfiguration.EnableInstallers();
 
