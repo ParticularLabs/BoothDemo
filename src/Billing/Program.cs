@@ -42,11 +42,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? 
     });
     cfg.CustomDiagnosticsWriter((diagnostics, ct) => Task.CompletedTask);
 
-    //var transport = new LearningTransport
-    //{
-    //    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport"),
-    //    TransportTransactionMode = TransportTransactionMode.ReceiveOnly
-    //};
     var azureConnectionString = Environment.GetEnvironmentVariable("AzureServiceBus_ConnectionString")!;
     var transport = new AzureServiceBusTransport(azureConnectionString, TopicTopology.Default)
         {

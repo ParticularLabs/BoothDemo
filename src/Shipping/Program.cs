@@ -42,10 +42,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s)
         }
     });
 
-    //var transport = new LearningTransport
-    //{
-    //    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport")
-    //};
     var azureConnectionString = Environment.GetEnvironmentVariable("AzureServiceBus_ConnectionString")!;
     var transport = new AzureServiceBusTransport(azureConnectionString, TopicTopology.Default)
         {

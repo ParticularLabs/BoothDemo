@@ -71,9 +71,12 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
     var metrics = endpointConfiguration.EnableMetrics();
 
     metrics.SendMetricDataToServiceControl(
+        //"Particular.Monitoring.RabbitMQ",
         "Particular.Monitoring",
         TimeSpan.FromMilliseconds(5000)
     );
+
+    //endpointConfiguration.UsePersistence<NonDurablePersistence>();
 
     var postgresConnectionString = Environment.GetEnvironmentVariable("Postgres_ConnectionString")!;
     var persistence = endpointConfiguration.UsePersistence<SqlPersistence>();
@@ -89,7 +92,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
 
     endpointConfiguration.EnableOutbox();
 
-   // endpointConfiguration.EnableOpenTelemetry();
     endpointConfiguration.EnableInstallers();
 
     var loggerFactory = LoggerFactory.Create(builder =>

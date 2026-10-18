@@ -11,11 +11,11 @@
         "Action": "Start"
       },
       {
-        "Path": "Billing\\Billing.csproj",
+        "Path": "RabbitToAzureBridge\\RabbitToAzureBridge.csproj",
         "Action": "Start"
       },
       {
-        "Path": "RabbitToAzureBridge\\RabbitToAzureBridge.csproj",
+        "Path": "Billing\\Billing.csproj",
         "Action": "Start"
       },
       {

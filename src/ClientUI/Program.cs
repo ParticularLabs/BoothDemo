@@ -28,10 +28,6 @@ serializer.Options(new JsonSerializerOptions
         }
 });
 
-//var transport = new LearningTransport
-//{
-//    StorageDirectory = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location)!.Parent!.FullName, ".learningtransport")
-//};
 var connectionString = Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
 var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
 var routing = endpointConfiguration.UseTransport(transport);
@@ -52,6 +48,7 @@ endpointConfiguration.EnableInstallers();
 
 var metrics = endpointConfiguration.EnableMetrics();
 metrics.SendMetricDataToServiceControl(
+    //"Particular.Monitoring.RabbitMQ",
     "Particular.Monitoring",
     TimeSpan.FromMilliseconds(5000)
 );

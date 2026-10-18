@@ -37,10 +37,10 @@ var raffleEndpoint = new BridgeEndpoint("Raffle");
 raffleEndpoint.RegisterPublisher<RaffleOrderCompleted>("Sales-Bridge");
 asb.HasEndpoint(raffleEndpoint);
 
-asb.HasEndpoint("Particular.ServiceControl");
-asb.HasEndpoint("Particular.Monitoring");
-asb.HasEndpoint("error");
-asb.HasEndpoint("audit");
+//asb.HasEndpoint("Particular.ServiceControl");
+//asb.HasEndpoint("Particular.Monitoring");
+//asb.HasEndpoint("error");
+//asb.HasEndpoint("audit");
 
 bridgeConfiguration.AddTransport(rabbit);
 bridgeConfiguration.AddTransport(asb);
@@ -48,18 +48,18 @@ bridgeConfiguration.AddTransport(asb);
 var builder = Host.CreateApplicationBuilder();
 builder.UseNServiceBusBridge(bridgeConfiguration);
 
-// Reports the length of the RabbitMQ Sales queue to Monitoring. The message goes to the Particular.Monitoring
-// queue in RabbitMQ, from where the bridge forwards it to Azure Service Bus.
-// It is reported as Sales@rabbitmq because Monitoring itself tracks the bridge's Sales queue in Azure Service Bus.
-// Both show up summed as the queue length of the Sales endpoint.
-builder.Services.AddSingleton<IQueueLengthProvider>(new RabbitMQManagementQueueLengthProvider("http://rabbitmq:15672"));
-builder.Services.AddHostedService(sp => new QueueLengthReporter(
-    new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum), rabbitMqConnectionString),
-    sp.GetRequiredService<IQueueLengthProvider>(),
-    [new MonitoredQueue("Sales", "Sales", ReportedQueueName: "Sales")],
-    sp.GetRequiredService<ILogger<QueueLengthReporter>>(),
-    // Monitoring does not interpolate between reports and its shortest graph (1 minute) has 1-second intervals
-    interval: TimeSpan.FromSeconds(1)));
+//// Reports the length of the RabbitMQ Sales queue to Monitoring. The message goes to the Particular.Monitoring
+//// queue in RabbitMQ, from where the bridge forwards it to Azure Service Bus.
+//// It is reported as Sales@rabbitmq because Monitoring itself tracks the bridge's Sales queue in Azure Service Bus.
+//// Both show up summed as the queue length of the Sales endpoint.
+//builder.Services.AddSingleton<IQueueLengthProvider>(new RabbitMQManagementQueueLengthProvider("http://localhost:15672"));
+//builder.Services.AddHostedService(sp => new QueueLengthReporter(
+//    new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum), rabbitMqConnectionString),
+//    sp.GetRequiredService<IQueueLengthProvider>(),
+//    [new MonitoredQueue("Sales", "Sales", ReportedQueueName: "Sales")],
+//    sp.GetRequiredService<ILogger<QueueLengthReporter>>(),
+//    // Monitoring does not interpolate between reports and its shortest graph (1 minute) has 1-second intervals
+//    interval: TimeSpan.FromSeconds(1)));
 
 await builder.Build().RunAsync();
 
