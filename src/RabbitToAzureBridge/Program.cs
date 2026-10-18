@@ -37,6 +37,7 @@ var raffleEndpoint = new BridgeEndpoint("Raffle");
 raffleEndpoint.RegisterPublisher<RaffleOrderCompleted>("Sales-Bridge");
 asb.HasEndpoint(raffleEndpoint);
 
+//HINT: Bridge Platform queues to Azure
 //asb.HasEndpoint("Particular.ServiceControl");
 //asb.HasEndpoint("Particular.Monitoring");
 //asb.HasEndpoint("error");
@@ -47,6 +48,8 @@ bridgeConfiguration.AddTransport(asb);
 
 var builder = Host.CreateApplicationBuilder();
 builder.UseNServiceBusBridge(bridgeConfiguration);
+
+//HINT: Send Sales queue length metrics to RabbitMQ Particular.Monitoring queue
 
 //// Reports the length of the RabbitMQ Sales queue to Monitoring. The message goes to the Particular.Monitoring
 //// queue in RabbitMQ, from where the bridge forwards it to Azure Service Bus.
