@@ -1,4 +1,4 @@
-﻿using Messages;
+using Messages;
 using Microsoft.Extensions.Hosting;
 using NServiceBus.Transport;
 using Shared;

@@ -1,4 +1,4 @@
-﻿using ClientUI;
+using ClientUI;
 using Messages;
 using Microsoft.Extensions.Logging;
 using NServiceBus.Configuration.AdvancedExtensibility;
@@ -17,58 +17,16 @@ var instanceName = string.IsNullOrEmpty(instancePostfix) ? "clientui" : $"client
 var instanceId = DeterministicGuid.Create("ClientUI", instanceName);
 var prometheusPortString = args.Skip(1).FirstOrDefault();
 
-var endpointConfiguration = new EndpointConfiguration("ClientUI");
-
-var serializer = endpointConfiguration.UseSerialization<SystemJsonSerializer>();
-serializer.Options(new JsonSerializerOptions
-{
-    TypeInfoResolverChain =
-        {
-            MessagesSerializationContext.Default
-        }
-});
-
-var connectionString = Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
-var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
-var routing = endpointConfiguration.UseTransport(transport);
-
-var queueBindings = endpointConfiguration.GetSettings().Get<QueueBindings>();
-queueBindings.BindSending("Particular.Monitoring");
-queueBindings.BindSending("Particular.ServiceControl");
-
-endpointConfiguration.AuditProcessedMessagesTo("audit");
-endpointConfiguration.SendHeartbeatTo("Particular.ServiceControl");
-
-endpointConfiguration.UniquelyIdentifyRunningInstance()
-    .UsingCustomIdentifier(instanceId)
-    .UsingCustomDisplayName(instanceName);
-
-//endpointConfiguration.EnableOpenTelemetry();
-endpointConfiguration.EnableInstallers();
-
-var metrics = endpointConfiguration.EnableMetrics();
-metrics.SendMetricDataToServiceControl(
-    //"Particular.Monitoring.RabbitMQ",
-    "Particular.Monitoring",
-    TimeSpan.FromMilliseconds(5000)
-);
-
-routing.RouteToEndpoint(typeof(PlaceOrder), "Sales");
-
 if (prometheusPortString != null)
 {
     OpenTelemetryUtils.ConfigureOpenTelemetry("ClientUI", instanceId.ToString(), int.Parse(prometheusPortString));
 }
+var endpointConfiguration = PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString);
 
 var loggerFactory = LoggerFactory.Create(builder =>
 {
     builder.ClearProviders(); // removes Console, Debug, etc.
-
-    // Optionally add something else:
-    // builder.AddDebug();
-    // builder.AddProvider(new MyCustomProvider());
 });
-
 LogManager.UseFactory(new ExtensionsLoggerFactory(loggerFactory));
 
 var endpointInstance = await Endpoint.Start(endpointConfiguration);
@@ -92,3 +50,45 @@ cancellation.Cancel();
 await simulatedWork;
 
 await endpointInstance.Stop();
+
+
+EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? prometheusPortString1)
+{
+    var cfg = new EndpointConfiguration("ClientUI");
+    cfg.LimitMessageProcessingConcurrencyTo(1);
+
+    var serializer = cfg.UseSerialization<SystemJsonSerializer>();
+    serializer.Options(new JsonSerializerOptions
+    {
+        TypeInfoResolverChain =
+        {
+            MessagesSerializationContext.Default
+        }
+    });
+    cfg.CustomDiagnosticsWriter((diagnostics, ct) => Task.CompletedTask);
+
+    var connectionString =  Environment.GetEnvironmentVariable("RabbitMQTransport_ConnectionString")!;
+    var transport = new RabbitMQTransport(RoutingTopology.Conventional(QueueType.Quorum, true), connectionString);
+    var routing = cfg.UseTransport(transport);
+    routing.RouteToEndpoint(typeof(PlaceOrder), "Sales");
+
+    cfg.UniquelyIdentifyRunningInstance()
+        .UsingCustomIdentifier(guid)
+        .UsingCustomDisplayName(s);
+
+    var metrics = cfg.EnableMetrics();
+    metrics.SendMetricDataToServiceControl(
+        "Particular.Monitoring",
+        TimeSpan.FromMilliseconds(5000)
+    );
+
+    var queueBindings = cfg.GetSettings().Get<QueueBindings>();
+    queueBindings.BindSending("Particular.Monitoring");
+    queueBindings.BindSending("Particular.ServiceControl");
+
+    cfg.AuditProcessedMessagesTo("audit");
+    cfg.SendHeartbeatTo("Particular.ServiceControl");
+    cfg.EnableInstallers();
+
+    return cfg;
+}
