@@ -91,6 +91,8 @@ The on-premises network is connected using a MikroTik wireless router in the fol
   - `eth0` is connected to MikroTik
   - `iptables` is set up to forward traffic between interfaces
   - DHCPD is set up to assign IP addresses to devices connected via MikroTik to `eth0`
+ 
+More details [here](networking.md)
 
 #### The Button
 
