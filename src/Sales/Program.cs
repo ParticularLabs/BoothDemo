@@ -78,20 +78,7 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
 
     //endpointConfiguration.UsePersistence<NonDurablePersistence>();
 
-    var postgresConnectionString = Environment.GetEnvironmentVariable("Postgres_ConnectionString")!;
-    var persistence = endpointConfiguration.UsePersistence<SqlPersistence>();
-    var dialect = persistence.SqlDialect<SqlDialect.PostgreSql>();
-    persistence.ConnectionBuilder(() => new NpgsqlConnection(postgresConnectionString));
-
-    dialect.JsonBParameterModifier(
-        modifier: parameter =>
-        {
-            var npgsqlParameter = (NpgsqlParameter)parameter;
-            npgsqlParameter.NpgsqlDbType = NpgsqlDbType.Jsonb;
-        });
-
-    var outboxConfig = endpointConfiguration.EnableOutbox();
-    outboxConfig.KeepDeduplicationDataFor(TimeSpan.FromMinutes(5));
+    endpointConfiguration.EnableOutbox();
 
     endpointConfiguration.EnableInstallers();
 

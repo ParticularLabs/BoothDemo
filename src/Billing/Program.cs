@@ -1,10 +1,9 @@
-﻿using Messages;
+using Messages;
 using Microsoft.Extensions.Hosting;
 using NServiceBus.Configuration.AdvancedExtensibility;
 using NServiceBus.Transport;
 using Shared;
 using System.Text.Json;
-using NServiceBus;
 
 var instancePostfix = args.FirstOrDefault();
 
@@ -49,9 +48,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? 
         };
     cfg.UseTransport(transport);
 
-    //cfg.Recoverability()
-    //    .Delayed(delayed => delayed.NumberOfRetries(0));
-
     cfg.AuditProcessedMessagesTo("audit");
     cfg.SendHeartbeatTo("Particular.ServiceControl");
 
@@ -71,8 +67,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? 
 
     cfg.UsePersistence<NonDurablePersistence>();
     cfg.EnableOutbox();
-
-   // cfg.EnableOpenTelemetry();
     cfg.EnableInstallers();
 
     return cfg;
