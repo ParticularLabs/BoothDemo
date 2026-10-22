@@ -77,7 +77,6 @@ class DialControl : IControl
     {
         var content = new Rows(
             Align.Center(new VerticalSettingIndicator(value)),
-            new Text(""),
             Align.Center(new Markup($"[bold yellow]{Markup.Escape(getState())}[/]")),
             Align.Center(new Markup($"\u25b2 {KeyBadge.Render(upKey)}   \u25bc {KeyBadge.Render(downKey)}")));
 

@@ -4,12 +4,10 @@ using Spectre.Console.Rendering;
 namespace Shared;
 
 /// <summary>
-/// Renders a setting as a tall vertical bar (one row per level), like a mixer fader.
+/// Renders a setting as a vertical bar, like a mixer fader. Each text row shows two levels using half-block characters.
 /// </summary>
 public sealed class VerticalSettingIndicator : Renderable
 {
-    const int labelWidth = 3;
-
     public int Value { get; }
     public int Max { get; }
     public int BarWidth { get; }
@@ -21,27 +19,25 @@ public sealed class VerticalSettingIndicator : Renderable
         BarWidth = Math.Max(1, barWidth);
     }
 
-    protected override Measurement Measure(RenderOptions options, int maxWidth)
-    {
-        var width = labelWidth + BarWidth;
-        return new Measurement(width, width);
-    }
+    protected override Measurement Measure(RenderOptions options, int maxWidth) => new(BarWidth, BarWidth);
 
     protected override IEnumerable<Segment> Render(RenderOptions options, int maxWidth)
     {
-        var filledBlock = new string('█', BarWidth);
-        var emptyBlock = new string('░', BarWidth);
+        // Lower half block: the foreground paints the lower level of the row, the background the upper one
+        var halfBlocks = new string('▄', BarWidth);
+        var rows = (Max + 1) / 2;
 
-        for (var level = Max; level >= 1; level--)
+        for (var row = rows - 1; row >= 0; row--)
         {
-            var isFilled = level <= Value;
+            var lowerLevel = row * 2 + 1;
+            var upperLevel = lowerLevel + 1;
 
-            yield return new Segment(level.ToString().PadLeft(labelWidth - 1) + " ", new Style(foreground: isFilled ? Color.White : Color.Grey35));
-            yield return new Segment(
-                isFilled ? filledBlock : emptyBlock,
-                new Style(foreground: isFilled ? LevelColor(level) : Color.Grey23));
+            var style = new Style(
+                foreground: LevelColor(lowerLevel),
+                background: upperLevel <= Max ? LevelColor(upperLevel) : Color.Default);
+            yield return new Segment(halfBlocks, style);
 
-            if (level > 1)
+            if (row > 0)
             {
                 yield return Segment.LineBreak;
             }
@@ -50,6 +46,11 @@ public sealed class VerticalSettingIndicator : Renderable
 
     Color LevelColor(int level)
     {
+        if (level > Value)
+        {
+            return Color.Grey23;
+        }
+
         var fraction = (double)level / Max;
         return fraction switch
         {
