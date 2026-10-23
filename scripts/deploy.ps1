@@ -20,6 +20,11 @@ param(
     [string] $ServicePulseVersion = "latest",
     [string] $ParticularLicense = "",
 
+    # Telemetry: public URL of the booth's OpenTelemetry Collector (the tunnel to its token-protected OTLP/HTTP receiver,
+    # port 4319 on the main Pi) and the token it expects. When empty, the apps don't export telemetry.
+    [string] $OtlpEndpoint = "",
+    [string] $OtlpToken = "",
+
     [switch] $SkipServices,
     [switch] $SkipPlatform
 )
@@ -77,6 +82,27 @@ $ServiceBusConnectionString = az servicebus namespace authorization-rule keys li
   --output tsv
 
 # -----------------------------
+# Telemetry
+# -----------------------------
+# Standard OpenTelemetry exporter variables, honored by the endpoints (via OpenTelemetryUtils) and by ServiceControl.
+# The bearer token goes in a secret because it is part of OTEL_EXPORTER_OTLP_HEADERS.
+
+$otlpHeaders = if ($OtlpToken) { "Authorization=Bearer $OtlpToken" } else { "none" }
+
+function Get-TelemetryEnv {
+    if (-not $OtlpEndpoint) {
+        return @()
+    }
+    @(
+        @{ name = "OTEL_EXPORTER_OTLP_ENDPOINT"; value = $OtlpEndpoint }
+        @{ name = "OTEL_EXPORTER_OTLP_PROTOCOL"; value = "http/protobuf" }
+        @{ name = "OTEL_EXPORTER_OTLP_HEADERS"; secretRef = "otlp-headers" }
+        # The OpenTelemetry default is 60 seconds, too slow for live graphs at the booth
+        @{ name = "OTEL_METRIC_EXPORT_INTERVAL"; value = "5000" }
+    )
+}
+
+# -----------------------------
 # Container Apps deployment
 # -----------------------------
 
@@ -89,6 +115,10 @@ function Deploy-ContainerApp {
 
     Write-Host "Deploying $AppName..."
 
+    $secrets = @("servicebus-connection-string=$ServiceBusConnectionString", "otlp-headers=$otlpHeaders")
+    $envVars = @("AzureServiceBus_ConnectionString=secretref:servicebus-connection-string") +
+        @(Get-TelemetryEnv | ForEach-Object { if ($_.secretRef) { "$($_.name)=secretref:$($_.secretRef)" } else { "$($_.name)=$($_.value)" } })
+
     az containerapp create `
       --name $AppName `
       --resource-group $ResourceGroupName `
@@ -96,8 +126,8 @@ function Deploy-ContainerApp {
       --image "$imagePrefix/$ImageName`:latest" `
       --min-replicas $MinReplicas `
       --max-replicas $MaxReplicas `
-      --secrets "servicebus-connection-string=$ServiceBusConnectionString" `
-      --env-vars "AzureServiceBus_ConnectionString=secretref:servicebus-connection-string" `
+      --secrets $secrets `
+      --env-vars $envVars `
       --scale-rule-name "$AppName-servicebus-scale" `
       --scale-rule-type azure-servicebus `
       --scale-rule-metadata "queueName=$QueueName" "messageCount=$MessageCount" `
@@ -146,6 +176,7 @@ function Deploy-PlatformApp {
                 secrets             = @(
                     @{ name = "servicebus-connection-string"; value = $ServiceBusConnectionString }
                     @{ name = "particular-license"; value = $(if ($ParticularLicense) { $ParticularLicense } else { "none" }) }
+                    @{ name = "otlp-headers"; value = $otlpHeaders }
                 )
                 ingress             = @{
                     external      = $External
@@ -203,6 +234,11 @@ function Get-TransportEnv {
     )
     if ($ParticularLicense) {
         $envVars += @{ name = "PARTICULARSOFTWARE_LICENSE"; secretRef = "particular-license" }
+    }
+    if ($OtlpEndpoint) {
+        # ServiceControl and Audit export metrics when OTEL_EXPORTER_OTLP_ENDPOINT is set; all three export logs with Otlp
+        $envVars += @{ name = "LOGGINGPROVIDERS"; value = "NLog,Otlp" }
+        $envVars += Get-TelemetryEnv
     }
     $envVars
 }

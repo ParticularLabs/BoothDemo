@@ -1,0 +1,67 @@
+# Observability for the booth: OpenTelemetry Collector, Prometheus and Grafana. Runs on the main Raspberry Pi and
+# joins the booth stack's network to read RabbitMQ and PostgreSQL metrics. Settings come from .env (see .env.example).
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.162.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    environment:
+      # Required by the token-protected OTLP receiver that the tunnel exposes to Azure
+      OTLP_PUBLIC_TOKEN: ${OTLP_PUBLIC_TOKEN:?Set OTLP_PUBLIC_TOKEN in .env}
+      RABBITMQ_MANAGEMENT_URL: http://rabbitmq:15672
+      RABBITMQ_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      POSTGRES_ENDPOINT: db:5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # The Aspire AppHost runs as a regular process on the Pi, so the dashboard is reached through the host
+      ASPIRE_OTLP_ENDPOINT: host.docker.internal:18889
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4317:4317"   # OTLP gRPC, booth network (Sales, ClientUI)
+      - "4318:4318"   # OTLP HTTP, booth network
+      - "4319:4319"   # OTLP HTTP with bearer token, target of the tunnel for Azure (Billing, Shipping, ServiceControl)
+      - "13133:13133" # health check
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.13.4
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:13.2.3
+    environment:
+      # Booth screens see the dashboards without logging in; editing needs the admin login
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/booth.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+networks:
+  # Created by the booth stack, which therefore has to be started first
+  default:
+    name: booth
+    external: true
+
+volumes:
+  prometheus-data:
+  grafana-data:

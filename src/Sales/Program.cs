@@ -20,6 +20,8 @@ var showHelp = instancePostfix is null or "1";
 
 var instanceId = DeterministicGuid.Create("Sales", instanceName);
 
+using var telemetry = OpenTelemetryUtils.ConfigureOpenTelemetry("Sales", instanceId.ToString());
+
 var ui = new UserInterface(showHelp);
 var endpointControls = new ProcessingEndpointControls(() => PrepareEndpointConfiguration(instanceId, instanceName), ui);
 
@@ -92,12 +94,12 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string displayName
 
     var outboxConfig = endpointConfiguration.EnableOutbox();
     outboxConfig.KeepDeduplicationDataFor(TimeSpan.FromMinutes(5));
-
     endpointConfiguration.EnableInstallers();
 
     var loggerFactory = LoggerFactory.Create(builder =>
     {
         builder.ClearProviders(); // removes Console, Debug, etc.
+        builder.AddOtlpLogging("Sales", guid.ToString());
 
         // Optionally add something else:
         // builder.AddDebug();

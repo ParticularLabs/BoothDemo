@@ -1,0 +1,67 @@
+# Single entry point for all booth telemetry. Everything is forwarded to the Aspire dashboard (traces, metrics, logs)
+# and metrics are also exposed to Prometheus for the Grafana dashboards.
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  bearertokenauth/public:
+    token: ${env:OTLP_PUBLIC_TOKEN}
+
+receivers:
+  # Booth network, no authentication
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  # Exposed to the internet through the tunnel, so it requires "Authorization: Bearer <OTLP_PUBLIC_TOKEN>"
+  otlp/public:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4319
+        auth:
+          authenticator: bearertokenauth/public
+  rabbitmq:
+    endpoint: ${env:RABBITMQ_MANAGEMENT_URL}
+    username: ${env:RABBITMQ_USER}
+    password: ${env:RABBITMQ_PASSWORD}
+    collection_interval: 5s
+  postgresql:
+    endpoint: ${env:POSTGRES_ENDPOINT}
+    transport: tcp
+    username: ${env:POSTGRES_USER}
+    password: ${env:POSTGRES_PASSWORD}
+    collection_interval: 10s
+    tls:
+      insecure: true
+
+processors:
+  batch:
+    timeout: 1s
+
+exporters:
+  otlp/aspire:
+    endpoint: ${env:ASPIRE_OTLP_ENDPOINT}
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    # Turns resource attributes such as service.name into labels (service_name) usable in Grafana
+    resource_to_telemetry_conversion:
+      enabled: true
+
+service:
+  extensions: [health_check, bearertokenauth/public]
+  pipelines:
+    traces:
+      receivers: [otlp, otlp/public]
+      processors: [batch]
+      exporters: [otlp/aspire]
+    metrics:
+      receivers: [otlp, otlp/public, rabbitmq, postgresql]
+      processors: [batch]
+      exporters: [otlp/aspire, prometheus]
+    logs:
+      receivers: [otlp, otlp/public]
+      processors: [batch]
+      exporters: [otlp/aspire]

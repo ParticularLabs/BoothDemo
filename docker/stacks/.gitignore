@@ -1,0 +1,2 @@
+# Real settings and secrets live only on the Pi (and locally); see .env.example in each stack
+.env

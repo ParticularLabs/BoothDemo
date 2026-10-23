@@ -1,0 +1,143 @@
+# Booth infrastructure on the main Raspberry Pi: RabbitMQ, PostgreSQL, the RabbitMQ-to-Azure bridge and the
+# Particular Service Platform. Settings and secrets come from .env (see .env.example).
+
+x-servicecontrol: &servicecontrol
+  command: --setup-and-run
+  restart: unless-stopped
+
+x-servicecontrol-env: &servicecontrol-env
+  TRANSPORTTYPE: RabbitMQ.QuorumConventionalRouting
+  CONNECTIONSTRING: host=rabbitmq
+  # Telemetry goes to the Collector in the observability stack, which joins this stack's network
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  OTEL_METRIC_EXPORT_INTERVAL: "5000"
+  LOGGINGPROVIDERS: NLog,Otlp
+
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # management UI and API
+      - "1883:1883"   # MQTT, used by the button boxes
+    volumes:
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    restart: unless-stopped
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "54320:5432"
+    volumes:
+      - local_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    restart: unless-stopped
+
+  bridge:
+    image: ghcr.io/particularlabs/boothdemo/rabbittoazurebridge:latest
+    environment:
+      AzureServiceBus_ConnectionString: ${AZURE_SERVICEBUS_CONNECTIONSTRING:?Set AZURE_SERVICEBUS_CONNECTIONSTRING in .env}
+      RabbitMQTransport_ConnectionString: host=rabbitmq
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+
+  # The images run as the non-root .NET app user (UID 1654). A new named volume is owned by root,
+  # so hand the body storage volume to that user before the primary starts.
+  bodies-permissions:
+    image: busybox
+    command: chown -R 1654:1654 /bodies
+    volumes:
+      - bodies:/bodies
+
+  servicecontrol:
+    <<: *servicecontrol
+    image: ghcr.io/particular/servicecontrol:${SERVICECONTROL_TAG}
+    environment:
+      <<: *servicecontrol-env
+      PersistenceType: PostgreSQL
+      SERVICECONTROL_DATABASE_CONNECTIONSTRING: Host=db;Port=5432;Database=servicecontrol;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      SERVICECONTROL_MESSAGEBODY_STORAGETYPE: FileSystem
+      SERVICECONTROL_MESSAGEBODY_FILESYSTEM_STORAGEPATH: /var/lib/servicecontrol/bodies
+      REMOTEINSTANCES: '[{"api_uri":"http://servicecontrol-audit:44444/api"}]'
+      SERVICECONTROL_ENABLEINTEGRATEDSERVICEPULSE: "true"
+      SERVICECONTROL_ENABLEFEDERATION: "true"
+      SERVICECONTROL_FEDERATEDINSTANCES: >-
+        [
+          {"key": "local", "name": "Raspberry Pi",
+           "api_uri": "http://localhost:33333/api/",
+           "monitoring_uri": "http://servicecontrol-monitoring:33633/"},
+          {"key": "azure", "name": "Azure",
+           "api_uri": "${AZURE_SERVICEPULSE_URL}/api/",
+           "monitoring_uri": "${AZURE_SERVICEPULSE_URL}/monitoring-api/"}
+        ]
+      MONITORING_URL: http://localhost:33633
+    ports:
+      - "33333:33333"
+    volumes:
+      - bodies:/var/lib/servicecontrol/bodies
+    depends_on:
+      bodies-permissions:
+        condition: service_completed_successfully
+      db:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+
+  servicecontrol-audit:
+    <<: *servicecontrol
+    image: ghcr.io/particular/servicecontrol-audit:${SERVICECONTROL_TAG}
+    environment:
+      <<: *servicecontrol-env
+      PersistenceType: PostgreSQL
+      SERVICECONTROL_AUDIT_DATABASE_CONNECTIONSTRING: Host=db;Port=5432;Database=servicecontrol_audit;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      SERVICECONTROL_AUDIT_AUDITRETENTIONPERIOD: 1.00:00:00
+    ports:
+      - "44444:44444"
+    depends_on:
+      - db
+      - rabbitmq
+
+  servicecontrol-monitoring:
+    <<: *servicecontrol
+    image: ghcr.io/particular/servicecontrol-monitoring:${SERVICECONTROL_TAG}
+    environment:
+      <<: *servicecontrol-env
+    ports:
+      - "33633:33633"
+    depends_on:
+      - rabbitmq
+
+  # Public URL for the primary instance, so the Azure ServicePulse can reach it
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: http servicecontrol:33333 --url ${NGROK_URL}
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Set NGROK_AUTHTOKEN in .env}
+    depends_on:
+      - servicecontrol
+    restart: unless-stopped
+
+networks:
+  # Fixed name so the observability stack can join it and reach RabbitMQ, PostgreSQL and ServiceControl by service name
+  default:
+    name: booth
+
+volumes:
+  local_pgdata:
+  pgadmin-data:
+  bodies:

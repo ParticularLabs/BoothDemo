@@ -11,23 +11,20 @@ var instancePostfix = args.FirstOrDefault();
 var title = string.IsNullOrEmpty(instancePostfix) ? "Failure rate (Billing)" : $"Billing - {instancePostfix}";
 var instanceName = string.IsNullOrEmpty(instancePostfix) ? "billing" : $"billing-{instancePostfix}";
 var instanceId = DeterministicGuid.Create("Billing", instanceName);
-var prometheusPortString = args.Skip(1).FirstOrDefault();
 
 Console.Title = title;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-var endpointConfiguration = PrepareEndpointConfiguration(instanceId, instanceName, prometheusPortString);
+var endpointConfiguration = PrepareEndpointConfiguration(instanceId, instanceName);
 
-if (prometheusPortString != null)
-{
-    OpenTelemetryUtils.ConfigureOpenTelemetry("Billing", instanceId.ToString(), int.Parse(prometheusPortString));
-}
+using var telemetry = OpenTelemetryUtils.ConfigureOpenTelemetry("Billing", instanceId.ToString());
+builder.Logging.AddOtlpLogging("Billing", instanceId.ToString());
 
 builder.Services.AddNServiceBusEndpoint(endpointConfiguration);
 await builder.Build().RunAsync();
 
-EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? prometheusPortString1)
+EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s)
 {
     var cfg = new EndpointConfiguration("Billing");
     cfg.LimitMessageProcessingConcurrencyTo(1);
@@ -71,8 +68,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s, string? 
 
     cfg.UsePersistence<NonDurablePersistence>();
     cfg.EnableOutbox();
-
-   // cfg.EnableOpenTelemetry();
     cfg.EnableInstallers();
 
     return cfg;

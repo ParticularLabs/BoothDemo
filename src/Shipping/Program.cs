@@ -11,7 +11,6 @@ var instancePostfix = args.FirstOrDefault();
 var title = string.IsNullOrEmpty(instancePostfix) ? "Processing (Shipping)" : $"Shipping - {instancePostfix}";
 var instanceName = string.IsNullOrEmpty(instancePostfix) ? "shipping" : $"shipping-{instancePostfix}";
 var instanceId = DeterministicGuid.Create("Shipping", instanceName);
-var prometheusPortString = args.Skip(1).FirstOrDefault();
 
 Console.Title = title;
 
@@ -19,10 +18,8 @@ var builder = Host.CreateApplicationBuilder(args);
 
 var endpointConfiguration = PrepareEndpointConfiguration(instanceId, instanceName);
 
-if (prometheusPortString != null)
-{
-    OpenTelemetryUtils.ConfigureOpenTelemetry("Shipping", instanceId.ToString(), int.Parse(prometheusPortString));
-}
+using var telemetry = OpenTelemetryUtils.ConfigureOpenTelemetry("Shipping", instanceId.ToString());
+builder.Logging.AddOtlpLogging("Shipping", instanceId.ToString());
 
 builder.UseNServiceBus(endpointConfiguration);
 await builder.Build().RunAsync();
@@ -68,8 +65,6 @@ EndpointConfiguration PrepareEndpointConfiguration(Guid guid, string s)
 
     cfg.UsePersistence<NonDurablePersistence>();
     cfg.EnableOutbox();
-
-   // cfg.EnableOpenTelemetry();
     cfg.EnableInstallers();
 
     return cfg;

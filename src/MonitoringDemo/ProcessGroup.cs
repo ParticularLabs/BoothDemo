@@ -22,7 +22,7 @@ partial class ProcessGroup : IDisposable
         }
     }
 
-    public ProcessHandle AddProcess(string relativeAssemblyPath, string instanceId, int port)
+    public ProcessHandle AddProcess(string relativeAssemblyPath, string instanceId)
     {
         if (!processesByAssemblyPath.TryGetValue(relativeAssemblyPath, out var processes))
         {
@@ -30,7 +30,7 @@ partial class ProcessGroup : IDisposable
             processesByAssemblyPath[relativeAssemblyPath] = processes;
         }
 
-        var process = StartProcess(relativeAssemblyPath, instanceId, port.ToString());
+        var process = StartProcess(relativeAssemblyPath, instanceId);
 
         if (process is null)
         {

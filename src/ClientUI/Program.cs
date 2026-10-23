@@ -15,7 +15,6 @@ var instancePostfix = args.FirstOrDefault();
 var title = string.IsNullOrEmpty(instancePostfix) ? "ClientUI" : $"ClientUI - {instancePostfix}";
 var instanceName = string.IsNullOrEmpty(instancePostfix) ? "clientui" : $"clientui-{instancePostfix}";
 var instanceId = DeterministicGuid.Create("ClientUI", instanceName);
-var prometheusPortString = args.Skip(1).FirstOrDefault();
 
 var endpointConfiguration = new EndpointConfiguration("ClientUI");
 
@@ -42,8 +41,6 @@ endpointConfiguration.SendHeartbeatTo("Particular.ServiceControl");
 endpointConfiguration.UniquelyIdentifyRunningInstance()
     .UsingCustomIdentifier(instanceId)
     .UsingCustomDisplayName(instanceName);
-
-//endpointConfiguration.EnableOpenTelemetry();
 endpointConfiguration.EnableInstallers();
 
 var metrics = endpointConfiguration.EnableMetrics();
@@ -55,14 +52,12 @@ metrics.SendMetricDataToServiceControl(
 
 routing.RouteToEndpoint(typeof(PlaceOrder), "Sales");
 
-if (prometheusPortString != null)
-{
-    OpenTelemetryUtils.ConfigureOpenTelemetry("ClientUI", instanceId.ToString(), int.Parse(prometheusPortString));
-}
+using var telemetry = OpenTelemetryUtils.ConfigureOpenTelemetry("ClientUI", instanceId.ToString());
 
 var loggerFactory = LoggerFactory.Create(builder =>
 {
     builder.ClearProviders(); // removes Console, Debug, etc.
+    builder.AddOtlpLogging("ClientUI", instanceId.ToString());
 
     // Optionally add something else:
     // builder.AddDebug();

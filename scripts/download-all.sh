@@ -32,3 +32,7 @@ gh run download "$RUN_ID" --repo "$REPO" --name "scripts" --dir "$HOME/scripts"
 chmod +x "$HOME"/scripts/*.sh
 
 
+
+rm -Rf "$HOME/stacks"
+mkdir -p "$HOME/stacks"
+gh run download "$RUN_ID" --repo "$REPO" --name "stacks" --dir "$HOME/stacks"

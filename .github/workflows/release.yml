@@ -50,8 +50,22 @@ jobs:
           name: ${{ matrix.runtime }}-${{ steps.vars.outputs.name }}
           path: artifacts/${{ matrix.runtime }}/${{ steps.vars.outputs.name }}
 
+  # Uploaded once rather than from every matrix job, because artifact names must be unique within a run
+  files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Upload scripts
         uses: actions/upload-artifact@v4
         with:
           name: scripts
           path: scripts/
+
+      - name: Upload Docker stacks
+        uses: actions/upload-artifact@v4
+        with:
+          name: stacks
+          path: docker/stacks/
+          include-hidden-files: true
