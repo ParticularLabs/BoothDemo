@@ -3,7 +3,7 @@ set -euo pipefail
 
 REPO="ParticularLabs/BoothDemo"
 WORKFLOW="release.yml"
-BRANCH="main"
+BRANCH="master"
 
 RUNTIME="linux-arm64"          # must match matrix.runtime
 
