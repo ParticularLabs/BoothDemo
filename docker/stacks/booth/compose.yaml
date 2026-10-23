@@ -122,15 +122,33 @@ services:
     depends_on:
       - rabbitmq
 
-  # Public URL for the primary instance, so the Azure ServicePulse can reach it
+  # Public URLs for the primary instance, so the Azure ServicePulse can reach it, and for the Collector's
+  # token-protected OTLP receiver in the observability stack, so the Azure apps can send telemetry
   ngrok:
     image: ngrok/ngrok:latest
-    command: http servicecontrol:33333 --url ${NGROK_URL}
+    command: start --all --config /etc/ngrok.yml
+    configs:
+      - source: ngrok
+        target: /etc/ngrok.yml
     environment:
       NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?Set NGROK_AUTHTOKEN in .env}
     depends_on:
       - servicecontrol
     restart: unless-stopped
+
+configs:
+  ngrok:
+    content: |
+      version: 3
+      endpoints:
+        - name: servicecontrol
+          url: ${NGROK_URL:?Set NGROK_URL in .env}
+          upstream:
+            url: http://servicecontrol:33333
+        - name: otlp
+          url: ${NGROK_OTLP_URL:?Set NGROK_OTLP_URL in .env}
+          upstream:
+            url: http://otel-collector:4319
 
 networks:
   # Fixed name so the observability stack can join it and reach RabbitMQ, PostgreSQL and ServiceControl by service name

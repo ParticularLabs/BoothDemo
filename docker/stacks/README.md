@@ -70,9 +70,8 @@ Endpoints export over OTLP when the standard OpenTelemetry variables are set. On
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://<main pi>:4317
 ```
 
-For Azure, a tunnel must forward a public HTTPS hostname to `http://localhost:4319` on the main Pi. Use a named tunnel
-so the hostname stays the same. Then pass that hostname and the token to the deployment, which configures Billing,
-Shipping and ServiceControl:
+For Azure, the `ngrok` service in the `booth` stack forwards `NGROK_OTLP_URL` to the Collector's port 4319. Pass that
+URL and the token to the deployment, which configures Billing, Shipping and ServiceControl:
 
 ```
 ./scripts/deploy.ps1 -ResourceGroupName <rg> -OtlpEndpoint https://<tunnel hostname> -OtlpToken <OTLP_PUBLIC_TOKEN>
