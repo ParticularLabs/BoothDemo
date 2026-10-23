@@ -57,10 +57,16 @@ Ports opened on the Pi:
 The `aspire-dashboard` container shows the traces, structured logs and metrics the Collector forwards to it, at
 `http://<pi>:18888`. It keeps them in memory only.
 
-`src/BoothDemo.AppHost` is an alternative for a machine with the .NET SDK: it runs the same dashboard plus health
-checks of the platform and the booth containers. To use it, stop the `aspire-dashboard` container and point the
-Collector's `ASPIRE_OTLP_ENDPOINT` at the AppHost, e.g. `host.docker.internal:18889` with
-`extra_hosts: ["host.docker.internal:host-gateway"]` when it runs on the Pi itself.
+For the Resources page with health checks of the platform and the booth containers, run `src/BoothDemo.AppHost` on a
+laptop on the booth network. The Collector also forwards everything to `LAPTOP_OTLP_ENDPOINT` (the laptop's
+`<address>:18889`). Set `BoothPi` in the AppHost's `appsettings.json` to the main Pi's address, allow inbound TCP 18889
+in the laptop's firewall, then:
+
+```
+dotnet run --launch-profile booth
+```
+
+The dashboard is at `http://localhost:18888`. While the laptop is away, the Collector logs failed exports to it.
 
 ### Sending telemetry
 

@@ -16,6 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       ASPIRE_OTLP_ENDPOINT: aspire-dashboard:18889
+      LAPTOP_OTLP_ENDPOINT: ${LAPTOP_OTLP_ENDPOINT:?Set LAPTOP_OTLP_ENDPOINT in .env}
     ports:
       - "4317:4317"   # OTLP gRPC, booth network (Sales, ClientUI)
       - "4318:4318"   # OTLP HTTP, booth network

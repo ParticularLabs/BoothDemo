@@ -44,6 +44,16 @@ exporters:
     endpoint: ${env:ASPIRE_OTLP_ENDPOINT}
     tls:
       insecure: true
+  # Aspire AppHost on a laptop on the booth network, for the Resources page with health checks. While the laptop is
+  # away, exports fail and are dropped quickly instead of piling up in memory.
+  otlp/laptop:
+    endpoint: ${env:LAPTOP_OTLP_ENDPOINT}
+    tls:
+      insecure: true
+    retry_on_failure:
+      max_elapsed_time: 30s
+    sending_queue:
+      queue_size: 50
   prometheus:
     endpoint: 0.0.0.0:8889
     # Turns resource attributes such as service.name into labels (service_name) usable in Grafana
@@ -56,12 +66,12 @@ service:
     traces:
       receivers: [otlp, otlp/public]
       processors: [batch]
-      exporters: [otlp/aspire]
+      exporters: [otlp/aspire, otlp/laptop]
     metrics:
       receivers: [otlp, otlp/public, rabbitmq, postgresql]
       processors: [batch]
-      exporters: [otlp/aspire, prometheus]
+      exporters: [otlp/aspire, otlp/laptop, prometheus]
     logs:
       receivers: [otlp, otlp/public]
       processors: [batch]
-      exporters: [otlp/aspire]
+      exporters: [otlp/aspire, otlp/laptop]

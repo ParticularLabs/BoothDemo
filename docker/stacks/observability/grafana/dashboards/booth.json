@@ -50,7 +50,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(nservicebus_messaging_successes_total[30s]))",
+          "expr": "sum(rate(nservicebus_messaging_successes_total[30s])) or vector(0)",
           "legendFormat": "",
           "refId": "A"
         }
