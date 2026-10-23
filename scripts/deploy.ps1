@@ -195,8 +195,9 @@ function Deploy-PlatformApp {
 
     $yamlFile = New-TemporaryFile
     try {
-        # JSON is valid YAML
-        $app | ConvertTo-Json -Depth 20 | Set-Content -Path $yamlFile -Encoding utf8
+        # JSON is valid YAML. Written without a byte order mark: Windows PowerShell's "-Encoding utf8" adds one,
+        # which the Azure CLI reads as part of the document and then fails to parse it
+        [System.IO.File]::WriteAllText($yamlFile.FullName, ($app | ConvertTo-Json -Depth 20))
         az containerapp create `
           --name $AppName `
           --resource-group $ResourceGroupName `

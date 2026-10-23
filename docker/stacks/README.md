@@ -35,8 +35,8 @@ The first time a stack is deployed, the script creates its `.env` from `.env.exa
 ```
  Sales, ClientUI (Pis) ──OTLP :4317──┐
  ServiceControl (Pi) ────────────────┤
-                                     ├─► OpenTelemetry Collector ──► Aspire dashboard :18888  (traces, logs, metrics, health)
- Billing, Shipping,  ──tunnel──:4319─┤        │                      (BoothDemo.AppHost, regular process)
+                                     ├─► OpenTelemetry Collector ──► Aspire dashboard :18888  (traces, logs, metrics)
+ Billing, Shipping,  ──tunnel──:4319─┤        │
  ServiceControl (Azure)   + token    │        └──► Prometheus :9090 ──► Grafana :3000  (big-screen dashboard)
  RabbitMQ, PostgreSQL ◄── scraped ───┘
 ```
@@ -50,17 +50,17 @@ Ports opened on the Pi:
 | 13133 | Collector health |
 | 9090 | Prometheus |
 | 3000 | Grafana, anonymous read-only. The **Booth demo** dashboard is the home page; append `?kiosk` for the booth screen |
+| 18888 | Aspire dashboard, no login |
 
 ### Aspire dashboard
 
-On the Pi, from `src/BoothDemo.AppHost`:
+The `aspire-dashboard` container shows the traces, structured logs and metrics the Collector forwards to it, at
+`http://<pi>:18888`. It keeps them in memory only.
 
-```
-dotnet run --launch-profile booth
-```
-
-The dashboard is at `http://<pi>:18888` (no login) and receives OTLP on 18889, where the Collector forwards everything.
-The services and health checks it shows are listed in `appsettings.json`.
+`src/BoothDemo.AppHost` is an alternative for a machine with the .NET SDK: it runs the same dashboard plus health
+checks of the platform and the booth containers. To use it, stop the `aspire-dashboard` container and point the
+Collector's `ASPIRE_OTLP_ENDPOINT` at the AppHost, e.g. `host.docker.internal:18889` with
+`extra_hosts: ["host.docker.internal:host-gateway"]` when it runs on the Pi itself.
 
 ### Sending telemetry
 

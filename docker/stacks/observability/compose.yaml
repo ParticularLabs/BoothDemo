@@ -15,15 +15,24 @@ services:
       POSTGRES_ENDPOINT: db:5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # The Aspire AppHost runs as a regular process on the Pi, so the dashboard is reached through the host
-      ASPIRE_OTLP_ENDPOINT: host.docker.internal:18889
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      ASPIRE_OTLP_ENDPOINT: aspire-dashboard:18889
     ports:
       - "4317:4317"   # OTLP gRPC, booth network (Sales, ClientUI)
       - "4318:4318"   # OTLP HTTP, booth network
       - "4319:4319"   # OTLP HTTP with bearer token, target of the tunnel for Azure (Billing, Shipping, ServiceControl)
       - "13133:13133" # health check
+    restart: unless-stopped
+
+  # Traces, structured logs and metrics for digging into details. Keeps telemetry in memory only, so it starts empty
+  # after a restart. Receives everything from the Collector, not directly from the endpoints.
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.1
+    environment:
+      # Booth network only, like Grafana; the OTLP port is not published
+      DASHBOARD__FRONTEND__AUTHMODE: Unsecured
+      DASHBOARD__OTLP__AUTHMODE: Unsecured
+    ports:
+      - "18888:18888"
     restart: unless-stopped
 
   prometheus:
