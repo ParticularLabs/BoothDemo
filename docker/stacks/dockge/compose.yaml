@@ -1,0 +1,15 @@
+# Dockge itself. It isn't one of the stacks it manages: deploy it next to them, in the home folder, like on the main Pi:
+#   STACKS_DIR=$HOME ~/scripts/deploy-stacks.sh dockge
+services:
+  dockge:
+    image: louislam/dockge:1
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      # Dockge runs docker compose inside its container, so the stacks folder needs the same path on the host
+      - /opt/stacks:/opt/stacks
+    environment:
+      DOCKGE_STACKS_DIR: /opt/stacks

@@ -14,5 +14,21 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
+  # Shows the transport's queue tables, e.g. the orders waiting in "Sales" while the cable is unplugged
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-nsb@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-particular}
+    ports:
+      - "5050:80"
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  pgadmin-data:
