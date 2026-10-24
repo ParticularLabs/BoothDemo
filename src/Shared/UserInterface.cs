@@ -192,6 +192,18 @@ public class UserInterface(bool showHelp = true)
                                 }
                                 break;
 
+                            case SendingFailed sf:
+                                AnsiConsole.MarkupLine($"[bold white on red] HTTP 500 [/] [red]POST /api/orders {sf.MessageId} - Internal Server Error: {Markup.Escape(sf.Reason)}[/]");
+                                break;
+
+                            case SendingRecovered:
+                                AnsiConsole.MarkupLine("[bold black on green] HTTP 200 [/] [green]POST /api/orders - connection to the message broker restored[/]");
+                                break;
+
+                            case BrokerUnavailable bu:
+                                AnsiConsole.MarkupLine($"[bold white on red] BROKER DOWN [/] [red]{Markup.Escape(bu.Reason)}[/]");
+                                break;
+
                             case OrderSagaStarted oss:
                                 AnsiConsole.MarkupLine($"[yellow]Saga started for order {oss.OrderId}[/]");
                                 break;

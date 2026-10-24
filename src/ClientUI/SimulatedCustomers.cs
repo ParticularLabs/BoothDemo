@@ -3,9 +3,15 @@ using Shared;
 
 namespace ClientUI;
 
-class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
+class SimulatedCustomers(UserInterface ui)
 {
     const int batchSize = 5;
+
+    // A send to a broker that went away silently (unplugged cable) waits for the publisher confirm until the connection
+    // is declared dead. Give up sooner so that the UI stays responsive and reports the failure.
+    static readonly TimeSpan sendTimeout = TimeSpan.FromSeconds(3);
+
+    public void Connected(IEndpointInstance instance) => endpointInstance = instance;
 
     public void BindSendingRateDial(char upKey, char downKey)
     {
@@ -149,17 +155,49 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
 
         var messageId = MessageIdHelper.GetHumanReadableMessageId();
 
-        await SendOneMessage(messageId, cancellationToken, placeOrderCommand);
+        if (!await TrySendOneMessage(messageId, placeOrderCommand, cancellationToken))
+        {
+            return;
+        }
 
         if (Random.Shared.Next(10) < duplicateLikelihood)
         {
             //Send a duplicate
-            await SendOneMessage(messageId, cancellationToken, placeOrderCommand);
+            await TrySendOneMessage(messageId, placeOrderCommand, cancellationToken);
         }
     }
 
-    private async Task SendOneMessage(string messageId, CancellationToken cancellationToken, PlaceOrder placeOrderCommand)
+    // Pretends to be a web API in front of the endpoint: a message that can't be sent is reported as an HTTP 500 response
+    // and the simulation carries on, so the demo keeps running while the broker is unreachable.
+    async Task<bool> TrySendOneMessage(string messageId, PlaceOrder placeOrderCommand, CancellationToken cancellationToken)
     {
+        var failure = await Send(messageId, placeOrderCommand, cancellationToken);
+
+        if (failure is not null)
+        {
+            failing = true;
+            await ui.SendEvent(new SendingFailed(messageId, failure));
+            return false;
+        }
+
+        if (failing)
+        {
+            failing = false;
+            await ui.SendEvent(new SendingRecovered());
+        }
+
+        return true;
+    }
+
+    // Returns why the message could not be sent, or null when it was sent
+    async Task<string?> Send(string messageId, PlaceOrder placeOrderCommand, CancellationToken cancellationToken)
+    {
+        var instance = endpointInstance;
+        if (instance is null)
+        {
+            return "cannot connect to the message broker";
+        }
+
         var sendOptions = new SendOptions();
 
         if (rate == 0) //Manual mode
@@ -168,9 +206,30 @@ class SimulatedCustomers(IEndpointInstance endpointInstance, UserInterface ui)
         }
 
         sendOptions.SetMessageId(messageId);
-        await endpointInstance.Send(placeOrderCommand, sendOptions, cancellationToken);
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(sendTimeout);
+
+        try
+        {
+            await instance.Send(placeOrderCommand, sendOptions, timeout.Token);
+            return null;
+        }
+        catch (OperationCanceledException) when (timeout.Token.IsCancellationRequested)
+        {
+            // Shutting down
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return "timed out waiting for the message broker";
+        }
+        catch (Exception ex)
+        {
+            return $"connection to the message broker lost ({ex.GetType().Name})";
+        }
     }
 
+    volatile IEndpointInstance? endpointInstance;
+    bool failing;
     DateTime nextReset;
     int currentIntervalCount;
     int rate = 0;

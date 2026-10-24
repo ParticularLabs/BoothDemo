@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IPS=("$Pi_2_IP" "$Pi_3_IP" "$Pi_4_IP")
+IPS=("$Pi_2_IP" "$Pi_3_IP" "$Pi_4_IP" "$Pi_5_IP")
 FOLDERS=("sales" "client" "scripts")
 
 for IP in "${IPS[@]}"; do
