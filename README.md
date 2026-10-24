@@ -21,6 +21,14 @@ Most conferences expect some sort of raffle towards the end of the event to give
 
 If the `PlaceOrder` message contains the `Campaign` property set to certain value (currently `TechoramaBE2026`) then when the saga completes, it publishes `RaffleOrderCompleted` event subscribed by the Raffle endpoint. This endpoint then publishes `RaffleWinnerSelected` that **fails processing**. This is intentional. The last message contains the name of the winner in the body. In order to reveal it, the booth staff opens ServicePulse and shows the payload on screen.
 
+### ClientUI robust mode
+
+ClientUI normally sends orders straight to RabbitMQ on the main Pi, so when its network cable is pulled the orders fail (shown as HTTP 500 responses). The **robust mode** toggle (`r`, raffle mode moved to `f`) recreates the endpoint on the PostgreSQL transport, using a local database on the ClientUI Pi, and starts a messaging bridge in the same process that forwards the Sales queue (and the platform queues) to RabbitMQ. With the cable pulled, orders keep being accepted and wait in the local Sales queue, whose length is shown on screen. When the cable is back, the bridge forwards them.
+
+The bridge is wrapped so that a failed forward is retried until RabbitMQ is back, instead of moving the message to the bridge's error queue after three attempts.
+
+The local database runs in Docker on the ClientUI Pi (`docker/stacks/clientui-db`). ClientUI's default `PostgreSqlTransport_ConnectionString` matches it.
+
 ## Build pipeline
 
 Besides CI, there are two additional build workflows:

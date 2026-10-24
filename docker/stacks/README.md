@@ -7,6 +7,7 @@ Each folder is a [Dockge](https://github.com/louislam/dockge) stack: a `compose.
 | `booth` | RabbitMQ, PostgreSQL, pgAdmin, the RabbitMQ-to-Azure bridge, ServiceControl (primary, audit, monitoring) and the ngrok tunnel to ServiceControl |
 | `observability` | OpenTelemetry Collector, Prometheus and Grafana. Joins the `booth` network, so `booth` has to be started first |
 | `dozzle` | Container log viewer |
+| `clientui-db` | Runs on the ClientUI Pi, not the main one: local PostgreSQL for the ClientUI robust mode. Deploy it there with `~/scripts/deploy-stacks.sh clientui-db` |
 
 Settings and secrets live in a `.env` next to each `compose.yaml`. Only `.env.example` is committed; the real `.env`
 exists only on the Pi.

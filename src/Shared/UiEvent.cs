@@ -16,3 +16,4 @@ public record OrderSagaCompleted(string OrderId) : UiEvent;
 public record SendingFailed(string MessageId, string Reason) : UiEvent;
 public record SendingRecovered() : UiEvent;
 public record BrokerUnavailable(string Reason) : UiEvent;
+public record ConnectionStatus(string Label, string Text, bool Healthy) : UiEvent;

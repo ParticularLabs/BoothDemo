@@ -35,6 +35,14 @@ public class UserInterface(bool showHelp = true)
         controls.Add(new ButtonControl(buttonKey, name, pressedAction));
     }
 
+    /// <summary>
+    /// Shows a line of status information. Nothing is shown while <paramref name="getState"/> returns null.
+    /// </summary>
+    public void BindInfo(string name, Func<string?> getState)
+    {
+        controls.Add(new InfoControl(name, getState));
+    }
+
 #pragma warning disable PS0018
     public Task RunLoop(string title)
 #pragma warning restore PS0018
@@ -202,6 +210,12 @@ public class UserInterface(bool showHelp = true)
 
                             case BrokerUnavailable bu:
                                 AnsiConsole.MarkupLine($"[bold white on red] BROKER DOWN [/] [red]{Markup.Escape(bu.Reason)}[/]");
+                                break;
+
+                            case ConnectionStatus cs:
+                                AnsiConsole.MarkupLine(cs.Healthy
+                                    ? $"[bold black on green] {Markup.Escape(cs.Label)} [/] [green]{Markup.Escape(cs.Text)}[/]"
+                                    : $"[bold black on yellow] {Markup.Escape(cs.Label)} [/] [yellow]{Markup.Escape(cs.Text)}[/]");
                                 break;
 
                             case OrderSagaStarted oss:

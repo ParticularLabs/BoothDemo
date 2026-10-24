@@ -13,6 +13,8 @@ class SimulatedCustomers(UserInterface ui)
 
     public void Connected(IEndpointInstance instance) => endpointInstance = instance;
 
+    public void Disconnected() => endpointInstance = null;
+
     public void BindSendingRateDial(char upKey, char downKey)
     {
         ui.BindDial(upKey, downKey,
@@ -195,7 +197,7 @@ class SimulatedCustomers(UserInterface ui)
         var instance = endpointInstance;
         if (instance is null)
         {
-            return "cannot connect to the message broker";
+            return "not connected to the message broker";
         }
 
         var sendOptions = new SendOptions();

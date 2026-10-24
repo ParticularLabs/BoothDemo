@@ -1,0 +1,18 @@
+# Local PostgreSQL on the ClientUI Pi, used only by the PostgreSQL transport in the ClientUI robust mode. Orders wait
+# here while RabbitMQ on the main Pi is unreachable. ClientUI's default PostgreSqlTransport_ConnectionString matches
+# these settings.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nsb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-particular}
+      POSTGRES_DB: clientui
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
