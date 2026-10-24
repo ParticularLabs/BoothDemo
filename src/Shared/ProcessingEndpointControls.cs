@@ -8,6 +8,7 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
 
     private bool delayedRetries;
     private bool autoThrottle;
+    private volatile bool rateLimited;
 
     private readonly AcknowledgingMessageProgressBehavior acknowledgingMessageProgressBehavior = new AcknowledgingMessageProgressBehavior(ui);
     private readonly ProcessingMessageProgressBehavior processingMessageProgressBehavior = new ProcessingMessageProgressBehavior(ui);
@@ -48,6 +49,10 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
                     //await Task.Delay(5000);
                     await RestartEndpoint();
                 }
+                catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
+                {
+                    break;
+                }
 #pragma warning disable PS0019
                 catch (Exception e)
 #pragma warning restore PS0019
@@ -74,11 +79,42 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
             config.Recoverability().Delayed(settings => settings.NumberOfRetries(0));
         }
 
+        // The new endpoint starts at full concurrency
+        if (rateLimited)
+        {
+            rateLimited = false;
+            await ui.SendEvent(new RateLimitingChanged(false));
+        }
+
         if (autoThrottle)
         {
-            var rateLimitSettings = new RateLimitSettings
+            //HINT: After 5 consecutive failures the endpoint switches to rate limited mode: it processes one message at a
+            //HINT: time and waits a second after each failure, until a message succeeds again.
+            var rateLimitSettings = new RateLimitSettings(
+                onRateLimitStarted: _ =>
+                {
+                    rateLimited = true;
+                    return ui.SendEvent(new RateLimitingChanged(true)).AsTask();
+                },
+                onRateLimitEnded: _ =>
+                {
+                    rateLimited = false;
+                    return ui.SendEvent(new RateLimitingChanged(false)).AsTask();
+                });
+
+            //HINT: Rate limiting alone doesn't change what happens to a failed message: it would still go through the
+            //HINT: immediate and delayed retries to the error queue. While rate limited, the failure is most likely caused
+            //HINT: by something outside the message (a database that is down), so keep retrying it instead. The message
+            //HINT: stays at the head of the queue, and the ones behind it wait.
+            config.Recoverability().CustomPolicy((recoverabilityConfig, errorContext) =>
             {
-            };
+                if (rateLimited && !IsUnrecoverable(recoverabilityConfig, errorContext.Exception))
+                {
+                    return RecoverabilityAction.ImmediateRetry();
+                }
+
+                return DefaultRecoverabilityPolicy.Invoke(recoverabilityConfig, errorContext);
+            });
             config.Recoverability().OnConsecutiveFailures(5, rateLimitSettings);
         }
 
@@ -86,6 +122,10 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
 
         runningEndpoint = await Endpoint.Start(config);
     }
+
+    // A message that can never succeed would otherwise be retried forever and block the queue
+    static bool IsUnrecoverable(RecoverabilityConfig recoverabilityConfig, Exception exception) =>
+        recoverabilityConfig.Failed.UnrecoverableExceptionTypes.Any(type => type.IsInstanceOfType(exception));
 
 #pragma warning disable PS0018
     public async Task StopEndpoint()
@@ -152,6 +192,7 @@ public class ProcessingEndpointControls(Func<EndpointConfiguration> endpointConf
                 autoThrottle = false;
                 restartSemaphore.Release();
             });
+        ui.BindInfo("Rate limiting", () => rateLimited ? "ACTIVE, one message at a time" : null);
     }
 
     public void BindFailureProcessingButton(UserInterface userInterface, char key)

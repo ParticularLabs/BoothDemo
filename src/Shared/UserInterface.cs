@@ -212,6 +212,12 @@ public class UserInterface(bool showHelp = true)
                                 AnsiConsole.MarkupLine($"[bold white on red] BROKER DOWN [/] [red]{Markup.Escape(bu.Reason)}[/]");
                                 break;
 
+                            case RateLimitingChanged rlc:
+                                AnsiConsole.MarkupLine(rlc.Active
+                                    ? "[bold black on yellow] RATE LIMITED [/] [yellow]Too many consecutive failures: processing one message at a time, failed messages stay in the queue[/]"
+                                    : "[bold black on green] FULL SPEED [/] [green]Processing succeeds again: rate limiting ended[/]");
+                                break;
+
                             case ConnectionStatus cs:
                                 AnsiConsole.MarkupLine(cs.Healthy
                                     ? $"[bold black on green] {Markup.Escape(cs.Label)} [/] [green]{Markup.Escape(cs.Text)}[/]"
