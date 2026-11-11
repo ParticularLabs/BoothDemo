@@ -60,7 +60,8 @@ Ports opened on the Pi:
 ### Aspire dashboard
 
 The `aspire-dashboard` container shows the traces, structured logs and metrics the Collector forwards to it, at
-`http://<pi>:18888`. It keeps them in memory only.
+`http://<pi>:18888`. It keeps them in a database under `DATA_DIR/aspire-dashboard` on the NVMe disk, which grows by
+about 1 GB a week. Each start begins with an empty database and removes the previous one.
 
 For the Resources page with health checks of the platform and the booth containers, run `src/BoothDemo.AppHost` on a
 laptop on the booth network. The Collector also forwards everything to `LAPTOP_OTLP_ENDPOINT` (the laptop's

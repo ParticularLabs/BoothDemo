@@ -4,6 +4,9 @@
 x-servicecontrol: &servicecontrol
   command: --setup-and-run
   restart: unless-stopped
+  # A crash writes a core dump of a few hundred MB into the container, which fills the SD card
+  ulimits:
+    core: 0
 
 x-servicecontrol-env: &servicecontrol-env
   TRANSPORTTYPE: RabbitMQ.QuorumConventionalRouting

@@ -24,16 +24,29 @@ services:
       - "13133:13133" # health check
     restart: unless-stopped
 
-  # Traces, structured logs and metrics for digging into details. Keeps telemetry in memory only, so it starts empty
-  # after a restart. Receives everything from the Collector, not directly from the endpoints.
+  # The dashboard runs as the non-root .NET app user (UID 1654). Hand its data folder to that user before it starts.
+  aspire-dashboard-permissions:
+    image: busybox
+    command: chown -R 1654:1654 /data
+    volumes:
+      - ${DATA_DIR:?Set DATA_DIR in .env}/aspire-dashboard:/data
+
+  # Traces, structured logs and metrics for digging into details. Receives everything from the Collector, not directly
+  # from the endpoints. It keeps them in a database under /tmp, which grows by about 1 GB a week, so /tmp is on DATA_DIR
+  # rather than the SD card. Each start begins with an empty database.
   aspire-dashboard:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13.6.1
     environment:
       # Booth network only, like Grafana; the OTLP port is not published
       DASHBOARD__FRONTEND__AUTHMODE: Unsecured
       DASHBOARD__OTLP__AUTHMODE: Unsecured
+    volumes:
+      - ${DATA_DIR:?Set DATA_DIR in .env}/aspire-dashboard:/tmp
     ports:
       - "18888:18888"
+    depends_on:
+      aspire-dashboard-permissions:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   prometheus:

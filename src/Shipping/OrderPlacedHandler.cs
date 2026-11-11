@@ -8,6 +8,9 @@ public class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger) : IHandleMes
 {
     public async Task Handle(OrderPlaced message, IMessageHandlerContext context)
     {
+        // Simulated shipping work, so that a busy booth makes the endpoint scale out
+        await Task.Delay(TimeSpan.FromMilliseconds(300), context.CancellationToken);
+
         var orderShipped = new OrderShipped
         {
             OrderId = message.OrderId
