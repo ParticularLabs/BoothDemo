@@ -4,7 +4,8 @@ namespace Shared;
 
 public class SlowProcessingSimulationBehavior : Behavior<IInvokeHandlerContext>
 {
-    readonly int baseProcessingTime = 100;
+    // The lowest setting adds no delay, to show the endpoint's maximum throughput
+    readonly int baseProcessingTime = 0;
     readonly int increment = 100;
     private int delayLevel = 0;
 
