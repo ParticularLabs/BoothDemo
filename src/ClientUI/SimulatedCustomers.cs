@@ -7,6 +7,9 @@ class SimulatedCustomers(UserInterface ui)
 {
     const int batchSize = 5;
 
+    // Orders per second for each step of the sending rate dial
+    const int ordersPerStep = 2;
+
     // A send to a broker that went away silently (unplugged cable) waits for the publisher confirm until the connection
     // is declared dead. Give up sooner so that the UI stays responsive and reports the failure.
     static readonly TimeSpan sendTimeout = TimeSpan.FromSeconds(3);
@@ -19,7 +22,7 @@ class SimulatedCustomers(UserInterface ui)
     {
         ui.BindDial(upKey, downKey,
             "Sending rate",
-            () => $"{rate}/s", x =>
+            () => $"{rate * ordersPerStep}/s", x =>
             {
                 rate = x;
                 if (x > 0)
@@ -54,7 +57,7 @@ class SimulatedCustomers(UserInterface ui)
     }
 
     int EffectiveRate => Math.Max(NoiseModifiedRate, 0);
-    int NoiseModifiedRate => rate * batchSize + noiseComponent;
+    int NoiseModifiedRate => (rate * batchSize + noiseComponent) * ordersPerStep;
 
     public async Task Run(CancellationToken cancellationToken = default)
     {
